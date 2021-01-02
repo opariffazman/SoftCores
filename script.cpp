@@ -27,16 +27,16 @@ bool isFileExists(const char* fileName)
 
 void writeLog(const char* msg)
 {
-	time_t nowTimestamp = std::time(0);
-	tm* now = localtime(&nowTimestamp);
-	stringstream txt;
+	struct tm newtime;
+	time_t now = time(0);
+	localtime_s(&newtime, &now);
+	stringstream text;
 
-	file.open(LOG_FILE, std::ios_base::app);
+	file.open(LOG_FILE, ios_base::app);
 	if (file.is_open())
 	{
-		txt << "[" << now->tm_mday << "/" << now->tm_mon << "/" << now->tm_year + 1900 << " "
-			<< now->tm_hour << ":" << now->tm_min << ":" << now->tm_sec << "] " << msg;
-		file << txt.str().c_str() << "\n";
+		text << "[" << newtime.tm_mday << "/" << newtime.tm_mon + 1 << "/" << newtime.tm_year + 1900 << " " << newtime.tm_hour << ":" << newtime.tm_min << ":" << newtime.tm_sec << "] " << msg;
+		file << text.str().c_str() << "\n";
 		file.close();
 	}
 }
@@ -81,54 +81,6 @@ void showSubtitle(const char* text)
 	UILOG::_UILOG_CLEAR_CACHED_OBJECTIVE(); //
 }
 
-bool isPedFriendly(Ped ped)
-{
-	return PED::IS_PED_MODEL(ped, key("cs_abigailroberts"))
-		|| PED::IS_PED_MODEL(ped, key("cs_beatenupcaptain"))
-		|| PED::IS_PED_MODEL(ped, key("cs_billwilliamson"))
-		|| PED::IS_PED_MODEL(ped, key("cs_brotherdorkins"))
-		|| PED::IS_PED_MODEL(ped, key("cs_captainmonroe"))
-		|| PED::IS_PED_MODEL(ped, key("cs_charlessmith"))
-		|| PED::IS_PED_MODEL(ped, key("cs_clay"))
-		|| PED::IS_PED_MODEL(ped, key("cs_cleet"))
-		|| PED::IS_PED_MODEL(ped, key("cs_clive"))
-		|| PED::IS_PED_MODEL(ped, key("cs_dutch"))
-		|| PED::IS_PED_MODEL(ped, key("cs_eagleflies"))
-		|| PED::IS_PED_MODEL(ped, key("cs_edithdown"))
-		|| PED::IS_PED_MODEL(ped, key("cs_hamish"))
-		|| PED::IS_PED_MODEL(ped, key("cs_hercule"))
-		|| PED::IS_PED_MODEL(ped, key("cs_hoseamatthews"))
-		|| PED::IS_PED_MODEL(ped, key("cs_jackmarston"))
-		|| PED::IS_PED_MODEL(ped, key("cs_jackmarston_teen"))
-		|| PED::IS_PED_MODEL(ped, key("cs_jamie"))
-		|| PED::IS_PED_MODEL(ped, key("cs_javierescuella"))
-		|| PED::IS_PED_MODEL(ped, key("cs_joe"))
-		|| PED::IS_PED_MODEL(ped, key("cs_johnmarston"))
-		|| PED::IS_PED_MODEL(ped, key("cs_josiahtrelawny"))
-		|| PED::IS_PED_MODEL(ped, key("cs_jules"))
-		|| PED::IS_PED_MODEL(ped, key("cs_karen"))
-		|| PED::IS_PED_MODEL(ped, key("cs_lemiuxassistant"))
-		|| PED::IS_PED_MODEL(ped, key("cs_lenny"))
-		|| PED::IS_PED_MODEL(ped, key("cs_leon"))
-		|| PED::IS_PED_MODEL(ped, key("cs_leostrauss"))
-		|| PED::IS_PED_MODEL(ped, key("cs_magnifico"))
-		|| PED::IS_PED_MODEL(ped, key("cs_marybeth"))
-		|| PED::IS_PED_MODEL(ped, key("cs_micahbell"))
-		|| PED::IS_PED_MODEL(ped, key("cs_mollyoshea"))
-		|| PED::IS_PED_MODEL(ped, key("cs_mrpearson"))
-		|| PED::IS_PED_MODEL(ped, key("cs_mrsadler"))
-		|| PED::IS_PED_MODEL(ped, key("cs_paytah"))
-		|| PED::IS_PED_MODEL(ped, key("cs_princessisabeau"))
-		|| PED::IS_PED_MODEL(ped, key("cs_rainsfall"))
-		|| PED::IS_PED_MODEL(ped, key("cs_revswanson"))
-		|| PED::IS_PED_MODEL(ped, key("cs_sean"))
-		|| PED::IS_PED_MODEL(ped, key("cs_sistercalderon"))
-		|| PED::IS_PED_MODEL(ped, key("cs_susangrimshaw"))
-		|| PED::IS_PED_MODEL(ped, key("cs_thomasdown"))
-		|| PED::IS_PED_MODEL(ped, key("cs_tilly"))
-		|| PED::IS_PED_MODEL(ped, key("cs_uncle"));
-}
-
 // cores functions
 enum class Core {
 	Health,
@@ -159,11 +111,6 @@ void setPlayerPoint(Core coreIndex, int value)
 int getPlayerCore(Core coreIndex)
 {
 	return ATTRIBUTE::_GET_ATTRIBUTE_CORE_VALUE(PLAYER::PLAYER_PED_ID(), static_cast<int>(coreIndex));
-}
-
-bool isPlayerCoreFilled()
-{
-	return (getPlayerCore(Core::Health) == 100 && getPlayerCore(Core::Stamina) == 100 && getPlayerCore(Core::DeadEye) == 100);
 }
 
 void setPlayerCore(Core coreIndex, int coreValue)
@@ -208,8 +155,6 @@ float getTimeOfDayModifier()
 		return 2.0f;
 	else if (CLOCK::GET_CLOCK_HOURS() >= 23 && CLOCK::GET_CLOCK_HOURS() < 5)
 		return 2.5f;
-	else
-		return 1.0f;
 }
 
 void setAIDamageModifer(float melee, float weapon)
@@ -249,6 +194,66 @@ bool isPlayerWearing(Clothes cloth)
 	return PED::_IS_METAPED_USING_COMPONENT(PLAYER::PLAYER_PED_ID(), static_cast<uint>(cloth));
 }
 
+bool isPedFriendly(Ped ped)
+{
+	const char* friendlyPeds[] = {
+		"CS_ABIGAILROBERTS",
+		"CS_BEATENUPCAPTAIN",
+		"CS_BILLWILLIAMSON",
+		"CS_BROTHERDORKINS",
+		"CS_CAPTAINMONROE",
+		"CS_CHARLESSMITH",
+		"CS_CLAY",
+		"CS_CLEET",
+		"CS_CLIVE",
+		"CS_DUTCH",
+		"CS_EAGLEFLIES",
+		"CS_EDITHDOWN",
+		"CS_HAMISH",
+		"CS_HERCULE",
+		"CS_HOSEAMATTHEWS",
+		"CS_JACKMARSTON",
+		"CS_JACKMARSTON_TEEN",
+		"CS_JAMIE",
+		"CS_JAVIERESCUELLA",
+		"CS_JOE",
+		"CS_JOHNMARSTON",
+		"CS_JOSIAHTRELAWNY",
+		"CS_JULES",
+		"CS_KAREN",
+		"CS_LEMIUXASSISTANT",
+		"CS_LENNY",
+		"CS_LEON",
+		"CS_LEOSTRAUSS",
+		"CS_MAGNIFICO",
+		"CS_MARYBETH",
+		"CS_MICAHBELL",
+		"CS_MOLLYOSHEA",
+		"CS_MRPEARSON",
+		"CS_MRSADLER",
+		"CS_PAYTAH",
+		"CS_PRINCESSISABEAU",
+		"CS_RAINSFALL",
+		"CS_REVSWANSON",
+		"CS_SEAN",
+		"CS_SISTERCALDERON",
+		"CS_SUSANGRIMSHAW",
+		"CS_THOMASDOWN",
+		"CS_TILLY",
+		"CS_UNCLE"
+	};
+
+	for (const char* friendlyPed: friendlyPeds)
+	{
+		if (PED::IS_PED_MODEL(ped, key(friendlyPed)))
+		{
+			return true;
+			break;
+		}
+	}
+	return false;
+}
+
 bool isPlayerJustDied()
 {
 	return PLAYER::IS_PLAYER_DEAD(PLAYER::PLAYER_ID()) || ENTITY::IS_ENTITY_DEAD(PLAYER::PLAYER_PED_ID());
@@ -273,7 +278,7 @@ bool isPlayerInControl()
 
 bool isPlayerPursued()
 {
-	return !PLAYER::GET_PLAYER_WANTED_LEVEL(PLAYER::PLAYER_ID()) ? false : true;
+	return PLAYER::GET_PLAYER_WANTED_LEVEL(PLAYER::PLAYER_ID()) > 0;
 }
 
 bool isPlayerActiveInScenario()
@@ -318,9 +323,10 @@ bool isPlayerInCover()
 	return PED::IS_PED_IN_COVER(PLAYER::PLAYER_PED_ID(), true, true);
 }
 
-bool isWeaponUnique(Hash weapon)
+// items that is categorized as weapon but is actually not
+bool isWeaponItem(Hash weapon)
 {
-	const char* uniqueWeapons[] = {
+	const char* itemWeapons[] = {
 		"WEAPON_UNARMED",
 		"WEAPON_MELEE_LANTERN",
 		"WEAPON_MELEE_DAVY_LANTERN",
@@ -339,13 +345,46 @@ bool isWeaponUnique(Hash weapon)
 		"WEAPON_MOONSHINEJUG_MP"
 	};
 
-	for each (const char* uniqueWeapon in uniqueWeapons)
+	for (const char* itemWeapon: itemWeapons)
 	{
-		return MISC::ARE_STRINGS_EQUAL(WEAPON::_GET_WEAPON_NAME(weapon), WEAPON::_GET_WEAPON_NAME(key(uniqueWeapon)));
+		if (MISC::ARE_STRINGS_EQUAL(WEAPON::_GET_WEAPON_NAME(weapon), itemWeapon))
+		{
+			return true;
+			break;
+		}
 	}
+	return false;
 }
 
-bool isWeaponThrowableOnly(Hash weapon) // weapon that is exclusively thrown only
+bool isWeaponExotic(Hash weapon)
+{
+	const char* exoticWeapons[] = {
+		"WEAPON_REVOLVER_DOUBLEACTION_GAMBLER",
+		"WEAPON_REVOLVER_CATTLEMAN_MEXICAN",
+		"WEAPON_REVOLVER_CATTLEMAN_PIG",
+		"WEAPON_REVOLVER_DOUBLEACTION_EXOTIC",
+		"WEAPON_REVOLVER_SCHOFIELD_GOLDEN",
+		"WEAPON_PISTOL_MAUSER_DRUNK",
+		"WEAPON_SHOTGUN_DOUBLEBARREL_EXOTIC",
+		"WEAPON_SNIPERRIFLE_ROLLINGBLOCK_EXOTIC",
+		"WEAPON_REVOLVER_CATTLEMAN_JOHN",
+		"WEAPON_REVOLVER_DOUBLEACTION_MICAH",
+		"WEAPON_REVOLVER_SCHOFIELD_CALLOWAY"
+	};
+
+	for (const char* exoticWeapon : exoticWeapons)
+	{
+		if (MISC::ARE_STRINGS_EQUAL(WEAPON::_GET_WEAPON_NAME(weapon), exoticWeapon))
+		{
+			return true;
+			break;
+		}
+	}
+	return false;
+}
+
+// weapon that is exclusively thrown only
+bool isWeaponThrowableOnly(Hash weapon) 
 {
 	const char* throwableWeapons[] = {
 		"WEAPON_THROWN_DYNAMITE",
@@ -358,13 +397,19 @@ bool isWeaponThrowableOnly(Hash weapon) // weapon that is exclusively thrown onl
 		"WEAPON_THROWN_POISONBOTTLE"
 	};
 
-	for each (const char* throwableWeapon in throwableWeapons)
+	for (const char* throwableWeapon: throwableWeapons)
 	{
-		return MISC::ARE_STRINGS_EQUAL(WEAPON::_GET_WEAPON_NAME(weapon), WEAPON::_GET_WEAPON_NAME(key(throwableWeapon)));
+		if (MISC::ARE_STRINGS_EQUAL(WEAPON::_GET_WEAPON_NAME(weapon), throwableWeapon))
+		{
+			return true;
+			break;
+		}
 	}
+	return false;
 }
 
-bool isWeaponGroupMelee(Hash weapon)
+// weapon that can be used as melee or can be thrown
+bool isWeaponMelee(Hash weapon)
 {
 	const char* meleeWeapons[] = {
 		"WEAPON_MELEE_HATCHET_MELEEONLY",
@@ -382,15 +427,23 @@ bool isWeaponGroupMelee(Hash weapon)
 		"WEAPON_MELEE_CLEAVER"
 	};
 
-	for each (const char* meleeWeapon in meleeWeapons)
+	for (const char* meleeWeapon: meleeWeapons)
 	{
-		return MISC::ARE_STRINGS_EQUAL(WEAPON::_GET_WEAPON_NAME(weapon), WEAPON::_GET_WEAPON_NAME(key(meleeWeapon)));
+		if (MISC::ARE_STRINGS_EQUAL(WEAPON::_GET_WEAPON_NAME(weapon), meleeWeapon))
+		{
+			return true;
+			break;
+		}
 	}
+	return false;
 }
 
 bool isDeadEyeActivated()
 {
-	return PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_SPECIAL_ABILITY")) || PAD::IS_CONTROL_PRESSED(0, key("INPUT_SPECIAL_ABILITY")) || PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_SPECIAL_ABILITY_PC")) || PAD::IS_CONTROL_PRESSED(0, key("INPUT_SPECIAL_ABILITY_PC"));
+	return PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_SPECIAL_ABILITY")) 
+		|| PAD::IS_CONTROL_PRESSED(0, key("INPUT_SPECIAL_ABILITY")) 
+		|| PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_SPECIAL_ABILITY_PC")) 
+		|| PAD::IS_CONTROL_PRESSED(0, key("INPUT_SPECIAL_ABILITY_PC"));
 }
 
 bool isPlayerOutside()
@@ -400,7 +453,8 @@ bool isPlayerOutside()
 
 bool isSubmerged()
 {
-	return ENTITY::IS_ENTITY_IN_WATER(PLAYER::PLAYER_PED_ID()) || (ENTITY::GET_ENTITY_SUBMERGED_LEVEL(PLAYER::PLAYER_PED_ID()) > 0.0f);
+	return ENTITY::IS_ENTITY_IN_WATER(PLAYER::PLAYER_PED_ID()) 
+		|| ENTITY::GET_ENTITY_SUBMERGED_LEVEL(PLAYER::PLAYER_PED_ID()) > 0.0f;
 }
 
 bool isRaining()
@@ -426,6 +480,88 @@ bool isPlayerMoving()
 		|| PED::_IS_PED_GETTING_INTO_A_MOUNT_SEAT(playerPed, true));
 }
 
+bool isPlayerStartedCampScenario()
+{
+	const char* campScenarios[] = {
+		"WORLD_PLAYER_CAMP_FIRE_KNEEL1",
+		"WORLD_PLAYER_CAMP_FIRE_KNEEL2",
+		"WORLD_PLAYER_CAMP_FIRE_KNEEL3",
+		"WORLD_PLAYER_CAMP_FIRE_KNEEL4",
+		"WORLD_PLAYER_CAMP_FIRE_SIT",
+		"WORLD_PLAYER_CAMP_FIRE_SQUAT",
+		"WORLD_PLAYER_DYNAMIC_KNEEL_KNIFE",
+		"WORLD_PLAYER_CAMP_FIRE_SQUAT_MALE_A",
+		"WORLD_PLAYER_CAMP_FIRE_SIT_MALE_A",
+		"WORLD_PLAYER_DYNAMIC_CAMP_FIRE_KNEEL_ARTHUR",
+		"PROP_PLAYER_SLEEP_TENT_A_FRAME",
+		"PROP_PLAYER_SEAT_CHAIR_PLAYER_CAMP",
+		"PROP_PLAYER_SEAT_CHAIR_DYNAMIC",
+		"PROP_PLAYER_SEAT_CHAIR_GENERIC",
+		"PROP_PLAYER_SEAT_CHAIR_GENERIC_CA"
+	};
+
+	for (const char* campScenario : campScenarios)
+	{
+		if (PED::_IS_PED_USING_SCENARIO_HASH(PLAYER::PLAYER_PED_ID(), key(campScenario)) && TASK::_GET_SCENARIO_POINT_PED_IS_USING(PLAYER::PLAYER_PED_ID(), 1) == -1)
+		{
+			return true;
+			break;
+		}
+	}
+	return false;
+}
+
+bool isPlayerStartedSleepScenario()
+{
+	const char* sleepScenarios[] = {
+		"WORLD_PLAYER_SLEEP_BEDROLL",
+		"WORLD_PLAYER_SLEEP_BEDROLL_ARTHUR",
+		"WORLD_PLAYER_SLEEP_GROUND",
+		"PROP_PLAYER_SLEEP_BED",
+		"PROP_PLAYER_SLEEP_BED_ARTHUR",
+		"PROP_PLAYER_SLEEP_TENT_A_FRAME",
+		"PROP_PLAYER_SLEEP_TENT_A_FRAME_ARTHUR",
+		"PROP_PLAYER_SLEEP_TENT_MALE_A",
+		"PROP_PLAYER_SLEEP_TENT_MALE_A_ARTHUR",
+		"PROP_PLAYER_SLEEP_A_FRAME_TENT_PLAYER_CAMPS",
+		"PROP_PLAYER_SLEEP_A_FRAME_TENT_PLAYER_CAMPS_ARTHUR"
+	};
+
+	for (const char* sleepScenario : sleepScenarios)
+	{
+		if (PED::_IS_PED_USING_SCENARIO_HASH(PLAYER::PLAYER_PED_ID(), key(sleepScenario)) && TASK::_GET_SCENARIO_POINT_PED_IS_USING(PLAYER::PLAYER_PED_ID(), 1) == -1)
+		{
+			return true;
+			break;
+		}
+	}
+	return false;
+}
+
+bool isStoryFXPlaying()
+{
+	const char* storyPostFXs[] = {
+				"ODR3_Injured01Loop",
+				"ODR3_Injured02Loop",
+				"ODR3_Injured03Loop",
+				"PlayerHealthPoorGuarma",
+				"PlayerSickDoctorsOpinion",
+				"PlayerSickDoctorsOpinionOutBad",
+				"PlayerSickDoctorsOpinionOutGood",
+				"PlayerWakeUpInterrogation"
+	};
+
+	for (const char* storyPostFX : storyPostFXs)
+	{
+		if (GRAPHICS::ANIMPOSTFX_IS_RUNNING(storyPostFX))
+		{
+			return true;
+			break;
+		}
+	}
+	return false;
+}
+
 int getGameTimer()
 {
 	return MISC::GET_GAME_TIMER();
@@ -449,90 +585,60 @@ float getPlayerClothesPoint()
 	return clothPoints;
 }
 
-float celciusToFarenheit(float temperature)
+float celciusToFarenheit(float temperature) // using exactly the same formula based on the decompiled scripts
 {
 	return ((temperature * 1.8f) + 32.0f);
 }
 
 float getSurroundingTemperature()
 {
-	float temperature;
-	Ped playerPed = PLAYER::PLAYER_PED_ID();
-	Vector3 playerPos = ENTITY::GET_ENTITY_COORDS(playerPed, true, true);
-	temperature = MISC::_GET_TEMPERATURE_AT_COORDS(playerPos.x, playerPos.y, playerPos.z);
+	Vector3 playerPos = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), true, true);
+	float temperature = MISC::_GET_TEMPERATURE_AT_COORDS(playerPos.x, playerPos.y, playerPos.z); // this function return in celcius
 
-	if (!MISC::_SHOULD_USE_METRIC_TEMPERATURE())
-	{
-		temperature = celciusToFarenheit(temperature);
-	}
-
-	return temperature;
+	return (MISC::_SHOULD_USE_METRIC_TEMPERATURE()) ? temperature: celciusToFarenheit(temperature);
 }
 
 float getTemperaturePointsNeeded()
 {
+	float temperaturePoints[] = { -20.0f, -16.0f, -12.0f, -8.0f, -4.0f, 0.0f, 4.0f, 8.0f, 12.0f, 16.0f, 20.0f, 24.0f, 28.0f }; // based on a climate/temperature map by hopper on reddit https://i.redd.it/p6f6etiw7by11.jpg in celcius
+	int size = sizeof(temperaturePoints) / sizeof(temperaturePoints[0]);
+
 	if (!MISC::_SHOULD_USE_METRIC_TEMPERATURE())
 	{
-		if (getSurroundingTemperature() <= celciusToFarenheit(-20.0f))
-			return 10.0f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(-20.0f) && getSurroundingTemperature() <= celciusToFarenheit (-16.0f))
-			return 9.5f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(-16.0f) && getSurroundingTemperature() <= celciusToFarenheit(-12.0f))
-			return 9.0f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(-12.0f) && getSurroundingTemperature() <= celciusToFarenheit(-8.0f))
-			return 8.5f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(-8.0f) && getSurroundingTemperature() <= celciusToFarenheit(-4.0f))
-			return 8.0f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(-4.0f) && getSurroundingTemperature() <= 0.0f)
-			return 7.5f;
-		else if (getSurroundingTemperature() >= 0.0f && getSurroundingTemperature() <= celciusToFarenheit(4.0f))
-			return 7.0f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(4.0f) && getSurroundingTemperature() <= celciusToFarenheit(8.0f))
-			return 6.5f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(8.0f) && getSurroundingTemperature() <= celciusToFarenheit(12.0f))
-			return 6.0f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(12.0f) && getSurroundingTemperature() <= celciusToFarenheit(16.0f))
-			return 6.0f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(16.0f) && getSurroundingTemperature() <= celciusToFarenheit(20.0f))
-			return 5.5f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(20.0f) && getSurroundingTemperature() <= celciusToFarenheit(24.0f))
-			return 5.0f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(24.0f) && getSurroundingTemperature() <= celciusToFarenheit(28.0f))
-			return 4.5f;
-		else if (getSurroundingTemperature() >= celciusToFarenheit(28.0f))
-			return 4.0f;
+		for (int i = 0; i < size; i++)
+		{
+			temperaturePoints[i] = celciusToFarenheit(temperaturePoints[i]);
+		}
 	}
-	else if (MISC::_SHOULD_USE_METRIC_TEMPERATURE())
-	{
-		if (getSurroundingTemperature() <= -20.0f)
-			return 10.0f;
-		else if (getSurroundingTemperature() >= -20.0f && getSurroundingTemperature() <= -16.0f)
-			return 9.5f;
-		else if (getSurroundingTemperature() >= -16.0f && getSurroundingTemperature() <= -12.0f)
-			return 9.0f;
-		else if (getSurroundingTemperature() >= -12.0f && getSurroundingTemperature() <= -8.0f)
-			return 8.5f;
-		else if (getSurroundingTemperature() >= -8.0f && getSurroundingTemperature() <= -4.0f)
-			return 8.0f;
-		else if (getSurroundingTemperature() >= -4.0f && getSurroundingTemperature() <= 0.0f)
-			return 7.5f;
-		else if (getSurroundingTemperature() >= 0.0f && getSurroundingTemperature() <= 4.0f)
-			return 7.0f;
-		else if (getSurroundingTemperature() >= 4.0f && getSurroundingTemperature() <= 8.0f)
-			return 6.5f;
-		else if (getSurroundingTemperature() >= 8.0f && getSurroundingTemperature() <= 12.0f)
-			return 6.0f;
-		else if (getSurroundingTemperature() >= 12.0f && getSurroundingTemperature() <= 16.0f)
-			return 6.0f;
-		else if (getSurroundingTemperature() >= 16.0f && getSurroundingTemperature() <= 20.0f)
-			return 5.5f;
-		else if (getSurroundingTemperature() >= 20.0f && getSurroundingTemperature() <= 24.0f)
-			return 5.0f;
-		else if (getSurroundingTemperature() >= 24.0f && getSurroundingTemperature() <= 28.0f)
-			return 4.5f;
-		else if (getSurroundingTemperature() >= 28.0f)
-			return 4.0f;
-	}
+
+	if (getSurroundingTemperature() < temperaturePoints[0]) // coldest
+		return 10.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[0] && getSurroundingTemperature() < temperaturePoints[1])
+		return 9.5f;
+	else if (getSurroundingTemperature() >= temperaturePoints[1] && getSurroundingTemperature() < temperaturePoints[2])
+		return 9.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[2] && getSurroundingTemperature() < temperaturePoints[3])
+		return 8.5f;
+	else if (getSurroundingTemperature() >= temperaturePoints[3] && getSurroundingTemperature() < temperaturePoints[4])
+		return 8.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[4] && getSurroundingTemperature() < temperaturePoints[5])
+		return 7.5f;
+	else if (getSurroundingTemperature() >= temperaturePoints[5] && getSurroundingTemperature() < temperaturePoints[6])
+		return 7.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[6] && getSurroundingTemperature() < temperaturePoints[7])
+		return 6.5f;
+	else if (getSurroundingTemperature() >= temperaturePoints[7] && getSurroundingTemperature() < temperaturePoints[8])
+		return 6.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[8] && getSurroundingTemperature() < temperaturePoints[9])
+		return 5.5f;
+	else if (getSurroundingTemperature() >= temperaturePoints[9] && getSurroundingTemperature() < temperaturePoints[10])
+		return 5.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[10] && getSurroundingTemperature() < temperaturePoints[11])
+		return 4.5f;
+	else if (getSurroundingTemperature() >= temperaturePoints[11] && getSurroundingTemperature() < temperaturePoints[12])
+		return 4.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[12]) // hottest
+		return 3.5f;
 }
 
 void main()
@@ -561,6 +667,7 @@ void main()
 	bool deadEyeReload = GetPrivateProfileInt("IMMERSION", "DEADEYE_RELOAD", 0, ".\\SoftCores.ini");
 	bool sleepStaminaOnly = GetPrivateProfileInt("IMMERSION", "SLEEP_STAMINA_ONLY", 1, ".\\SoftCores.ini");
 	bool bathDeadEyeOnly = GetPrivateProfileInt("IMMERSION", "BATH_DEADEYE_ONLY", 1, ".\\SoftCores.ini");
+	bool headshotImmunity = GetPrivateProfileInt("IMMERSION", "HEADSHOT_IMMUNITY", 0, ".\\SoftCores.ini");
 
 	// dead eye no reload usage
 	Hash primaryWeapon;
@@ -597,6 +704,7 @@ void main()
 	// core modifiers
 	bool temperatureCore = GetPrivateProfileInt("CORE_MODIFIER", "TEMPERATURE_CORE", 1, ".\\SoftCores.ini");
 	bool temperatureCoreFx = GetPrivateProfileInt("CORE_MODIFIER", "TEMPERATURE_CORE_FX", 1, ".\\SoftCores.ini");
+	bool temperatureCoreSprite = GetPrivateProfileInt("CORE_MODIFIER", "TEMPERATURE_CORE_SPRITE", 1, ".\\SoftCores.ini");
 	bool aimPenalty = GetPrivateProfileInt("CORE_MODIFIER", "AIM_PENALTY", 1, ".\\SoftCores.ini");
 
 	int playerHpModifier = GetPrivateProfileInt("CORE_MODIFIER", "PLAYER_HEALTH_CORE", 4, ".\\SoftCores.ini");
@@ -609,6 +717,7 @@ void main()
 	bool penaltyOnDeath = GetPrivateProfileInt("DEATH_PENALTY", "PENALTY_ON_DEATH", 1, ".\\SoftCores.ini");
 	bool loseHandWeapon = GetPrivateProfileInt("DEATH_PENALTY", "LOSE_HAND_WEAPON", 1, ".\\SoftCores.ini");
 	bool loseBodyWeapon = GetPrivateProfileInt("DEATH_PENALTY", "LOSE_BODY_WEAPON", 1, ".\\SoftCores.ini");
+	bool loseExoticWeapon = GetPrivateProfileInt("DEATH_PENALTY", "LOSE_EXOTIC_WEAPON", 1, ".\\SoftCores.ini");
 
 	// lose randomized % of money on death
 	bool loseMoney = GetPrivateProfileInt("DEATH_PENALTY", "LOSE_MONEY", 1, ".\\SoftCores.ini");
@@ -671,22 +780,8 @@ void main()
 	{
 		// variables that need constantly updated
 		Player playerID = PLAYER::PLAYER_ID();
-		Ped playerPed = PLAYER::PLAYER_PED_ID();
+		playerPed = PLAYER::PLAYER_PED_ID();
 		Ped horsePed = PLAYER::_GET_SADDLE_HORSE_FOR_PLAYER(playerID);
-
-		// START WEATHER PART +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		/*int f5{ VK_F5 };
-		if (IsKeyJustUp(f5))
-		{
-			Hash weatherType1;
-			Hash weatherType2;
-			float transition;
-			MISC::_GET_WEATHER_TYPE_TRANSITION(&weatherType1, &weatherType2, &transition);
-			MISC::_SET_WEATHER_TYPE_TRANSITION(weatherType1, 839715153, transition, 1);
-			MISC::_SET_WEATHER_TYPE(839715153, true, true, true, 1.0f, true);
-			writeLog("set weather type transition 839715153");
-		}*/
-		// END WEATHER PART +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 		// IMMERSION PART =======================================================================================================================
 
@@ -709,6 +804,8 @@ void main()
 			if (!failFX) GRAPHICS::ANIMPOSTFX_STOP("MissionFail01");
 		}
 		// END IMMERSION FX +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+		if (!headshotImmunity) PED::SET_PED_CONFIG_FLAG(playerPed, 263, false); // disable playerPed headshot immunity
 
 		// START HOSTILE BLIP +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		if (!hostileBlip)
@@ -735,11 +832,13 @@ void main()
 						{
 							MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_IN"));
 							MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
+							PLAYER::SET_POLICE_RADAR_BLIPS(true);
 						}
 						else if (!PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // not within player fov
 						{
 							MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
 							MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_OUT_SLOW"));
+							PLAYER::SET_POLICE_RADAR_BLIPS(false);
 						}
 					}
 				}
@@ -752,20 +851,6 @@ void main()
 		{
 			bool isNotinControl;
 			bool isSleeping;
-
-			const char* sleepScenarios[] = {
-				"WORLD_PLAYER_SLEEP_BEDROLL",
-				"WORLD_PLAYER_SLEEP_BEDROLL_ARTHUR",
-				"WORLD_PLAYER_SLEEP_GROUND",
-				"PROP_PLAYER_SLEEP_BED",
-				"PROP_PLAYER_SLEEP_BED_ARTHUR",
-				"PROP_PLAYER_SLEEP_TENT_A_FRAME",
-				"PROP_PLAYER_SLEEP_TENT_A_FRAME_ARTHUR",
-				"PROP_PLAYER_SLEEP_TENT_MALE_A",
-				"PROP_PLAYER_SLEEP_TENT_MALE_A_ARTHUR",
-				"PROP_PLAYER_SLEEP_A_FRAME_TENT_PLAYER_CAMPS",
-				"PROP_PLAYER_SLEEP_A_FRAME_TENT_PLAYER_CAMPS_ARTHUR"
-			};
 
 			if (!isPlayerInControl() && !isNotinControl) // get last health and deadeye core values when player is no longer in control (when using campfire from wheel or start of most scenario)
 			{
@@ -782,25 +867,22 @@ void main()
 				writeLog("hooked player is in control");
 			}
 
-			for each (const char* sleepScenario in sleepScenarios) // tries hooking via each sleeping scenario available as of now
+			if (isNotinControl && isPlayerStartedSleepScenario() && !isSleeping) // once hooked the first entry point of scenario which is -1 while not in control, stop hooking at all
 			{
-				if (isNotinControl && PED::_IS_PED_USING_SCENARIO_HASH(playerPed, key(sleepScenario)) && TASK::_GET_SCENARIO_POINT_PED_IS_USING(playerPed, 1) == -1 && !isSleeping) // once hooked the first entry point of scenario which is -1 while not in control, stop hooking at all
-				{
-					isSleeping = true;
-					stringstream text;
-					text << "hooked entry point of sleep scenario: " << sleepScenario << " while isNotinControl = true, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
-					writeLog(text.str().c_str());
-				}
-				else if (!isNotinControl && PED::_IS_PED_USING_SCENARIO_HASH(playerPed, key(sleepScenario)) && TASK::_GET_SCENARIO_POINT_PED_IS_USING(playerPed, 1) == -1 && !isSleeping) // once hooked the first entry point of scenario which is -1 while in control, stop hooking at all
-				{
-					isSleeping = true;
-					isNotinControl = true;
-					lastHealthCore = getPlayerCore(Core::Health);
-					lastDeadEyeCore = getPlayerCore(Core::DeadEye);
-					stringstream text;
-					text << "hooked entry point of sleep scenario: " << sleepScenario << " while isNotinControl = false, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
-					writeLog(text.str().c_str());
-				}
+				isSleeping = true;
+				stringstream text;
+				text << "hooked entry point of sleep scenario while is not in control, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
+				writeLog(text.str().c_str());
+			}
+			else if (!isNotinControl && isPlayerStartedSleepScenario() && !isSleeping) // once hooked the first entry point of scenario which is -1 while in control, stop hooking at all
+			{
+				isSleeping = true;
+				isNotinControl = true;
+				lastHealthCore = getPlayerCore(Core::Health);
+				lastDeadEyeCore = getPlayerCore(Core::DeadEye);
+				stringstream text;
+				text << "hooked entry point of sleep scenario while in control, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
+				writeLog(text.str().c_str());
 			}
 
 			if (isSleeping) // keep setting player last health, deadeye until player starts moving or using campfire scenario
@@ -808,7 +890,7 @@ void main()
 				setPlayerCore(Core::Health, lastHealthCore);
 				setPlayerCore(Core::DeadEye, lastDeadEyeCore);
 
-				isSleeping = (isPlayerMoving() || PED::_IS_PED_USING_SCENARIO_HASH(playerPed, key("WORLD_PLAYER_CAMP_FIRE_KNEEL1"))) ? false : true;
+				isSleeping = (isPlayerMoving() || isPlayerStartedCampScenario()) ? false : true;
 			}
 		}
 		// END OF SLEEP STAMINA ONLY PART +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -910,32 +992,15 @@ void main()
 		
 		bool isStoryPostFX;
 
-		const char* storyPostFXs[] = {
-				"ODR3_Injured01Loop",
-				"ODR3_Injured02Loop",
-				"ODR3_Injured03Loop",
-				"PlayerHealthPoorGuarma",
-				"PlayerSickDoctorsOpinion",
-				"PlayerSickDoctorsOpinionOutBad",
-				"PlayerSickDoctorsOpinionOutGood",
-				"PlayerWakeUpInterrogation"
-		};
-
-		for each (const char* storyPostFX in storyPostFXs)
+		if (isStoryFXPlaying() && !isStoryPostFX)
 		{
-			if (GRAPHICS::ANIMPOSTFX_IS_RUNNING(storyPostFX) && !isStoryPostFX)
-			{
-				isStoryPostFX = true;
-				stringstream text;
-				text << "hooked isStoryPostFX running: " << storyPostFX;
-				writeLog(text.str().c_str());
-			}
-			else if (!GRAPHICS::ANIMPOSTFX_IS_RUNNING(storyPostFX) && isStoryPostFX)
-			{
-				isStoryPostFX = false;
-				stringstream text;
-				writeLog("hooked isStoryPostFX stopped");
-			}
+			isStoryPostFX = true;
+			writeLog("hooked isStoryPostFX running");
+		}
+		else if (!isStoryFXPlaying() && isStoryPostFX)
+		{
+			isStoryPostFX = false;
+			writeLog("hooked isStoryPostFX stopped");
 		}
 
 		if ((isPlayerPlaying() && !isStoryPostFX) || (ENTITY::DOES_ENTITY_EXIST(horsePed) && !ENTITY::IS_ENTITY_DEAD(horsePed))) // do this first else will crash on new game, also disable the core part of the mod while in storyPostFX
@@ -945,7 +1010,10 @@ void main()
 			int horseHpPercentageDrain = GetPrivateProfileInt("CORE_MODIFIER", "HORSE_HEALTH_PENALTY", 4, ".\\SoftCores.ini") * ENTITY::GET_ENTITY_MAX_HEALTH(horsePed, 0) / 100;
 			
 			// START TEMPERATURE CORE +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			if (temperatureCore)
+			float pointsDifferences;
+			int outfitModifier;
+
+			if (temperatureCore) // this on to be called every tick
 			{
 				float pointsModifier = 0.0f;
 				
@@ -961,7 +1029,7 @@ void main()
 					{
 						isNearFireModifier = true;
 						stringstream text;
-						text << "hooked player close to fire, pointsModifier: " << pointsModifier - 1.0f;
+						text << "hooked player close to fire, pointsModifier: " << pointsModifier - 0.5f;
 						writeLog(text.str().c_str());
 					}
 					else if (MISC::GET_DISTANCE_BETWEEN_COORDS(playerPos.x, playerPos.y, playerPos.z, nearestFire.x, nearestFire.y, nearestFire.z, true) > 4.0f && isNearFireModifier)
@@ -974,70 +1042,49 @@ void main()
 
 				if (isNearFireModifier)
 				{
-					pointsModifier = pointsModifier - 1.0f; // minus pointsModifier value here to subtract to overall value later
+					pointsModifier = pointsModifier - 0.5f; // minus pointsModifier value here to subtract to overall value later
 				}
 
 				// isCampfireModifier ***********************************************************************************************************
 
 				bool isCampfireModifier;
-				const char* campScenarios[] = {
-					"WORLD_PLAYER_CAMP_FIRE_KNEEL1",
-					"WORLD_PLAYER_CAMP_FIRE_KNEEL2",
-					"WORLD_PLAYER_CAMP_FIRE_KNEEL3",
-					"WORLD_PLAYER_CAMP_FIRE_KNEEL4",
-					"WORLD_PLAYER_CAMP_FIRE_SIT",
-					"WORLD_PLAYER_CAMP_FIRE_SQUAT",
-					"WORLD_PLAYER_DYNAMIC_KNEEL_KNIFE",
-					"WORLD_PLAYER_CAMP_FIRE_SQUAT_MALE_A",
-					"WORLD_PLAYER_CAMP_FIRE_SIT_MALE_A",
-					"WORLD_PLAYER_DYNAMIC_CAMP_FIRE_KNEEL_ARTHUR",
-					"PROP_PLAYER_SLEEP_TENT_A_FRAME",
-					"PROP_PLAYER_SEAT_CHAIR_PLAYER_CAMP",
-					"PROP_PLAYER_SEAT_CHAIR_DYNAMIC",
-					"PROP_PLAYER_SEAT_CHAIR_GENERIC",
-					"PROP_PLAYER_SEAT_CHAIR_GENERIC_CA"
-				};
 
-				for each (const char* campScenario in campScenarios)
+				if (isPlayerInControl() && isPlayerStartedCampScenario() && !isCampfireModifier)
 				{
-					if (isPlayerInControl() && PED::_IS_PED_USING_SCENARIO_HASH(playerPed, key(campScenario)) && TASK::_GET_SCENARIO_POINT_PED_IS_USING(playerPed, 1) == -1 && !isCampfireModifier)
-					{
-						isCampfireModifier = true;
+					isCampfireModifier = true;
 
-						stringstream text;
-						text << "hooked first entry point of campfire scenario: " << campScenario << " pointsModifier: " << pointsModifier - 1.0f;
-						writeLog(text.str().c_str());
-					}
+					stringstream text;
+					text << "hooked player started campfire scenario, pointsModifier: " << pointsModifier - 0.5f;
+					writeLog(text.str().c_str());
+				}
 
-					if (isCampfireModifier)
-					{
-						pointsModifier = pointsModifier - 1.0f; // minus pointsModifier value here to subtract to overall value later
-						isCampfireModifier = (isPlayerMoving() && !PED::_IS_PED_USING_SCENARIO_HASH(playerPed, key(campScenario))) ? false : true;
-					}
-
+				if (isCampfireModifier)
+				{
+					pointsModifier = pointsModifier - 0.5f; // minus pointsModifier value here to subtract to overall value later
+					isCampfireModifier = (isPlayerMoving() && !isPlayerStartedCampScenario()) ? false : true;
 				}
 
 				// isNotOutsideModifier ***********************************************************************************************************
 
-				bool isNotOutsideModifier;
+				bool isInsideModifier;
 				
-				if (!isPlayerOutside() && !isNotOutsideModifier)
+				if (!isPlayerOutside() && !isInsideModifier)
 				{
-					isNotOutsideModifier = true;
+					isInsideModifier = true;
 
 					stringstream text;
-					text << "hooked player is inside interior: " << INTERIOR::GET_INTERIOR_FROM_ENTITY(playerPed) << " pointsModifier: " << pointsModifier - 2.0f;
+					text << "hooked player is inside interior: " << INTERIOR::GET_INTERIOR_FROM_ENTITY(playerPed) << " pointsModifier: " << pointsModifier - 1.5f;
 					writeLog(text.str().c_str());
 				}
-				else if (isPlayerOutside() && isNotOutsideModifier)
+				else if (isPlayerOutside() && isInsideModifier)
 				{
-					isNotOutsideModifier = false;
-					writeLog("hooked player outside interior");
+					isInsideModifier = false;
+					writeLog("hooked player is outside");
 				}
 
-				if (isNotOutsideModifier)
+				if (isInsideModifier)
 				{
-					pointsModifier = pointsModifier - 2.0f; // minus pointsModifier value here to subtract to overall value later
+					pointsModifier = pointsModifier - 1.0f; // minus pointsModifier value here to subtract to overall value later
 				}
 
 				// isSubmergedModifier ***********************************************************************************************************
@@ -1049,7 +1096,7 @@ void main()
 					isSubmergedModifier = true;
 
 					stringstream text;
-					text << "hooked player submerged, submergedLevel: " << 0.5f + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed) << " pointsModifier: " << pointsModifier + 0.5f + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed);
+					text << "hooked player submerged, pointsModifier: " << pointsModifier + 1.0f + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed);
 					writeLog(text.str().c_str());
 				}
 				else if (!isSubmerged() && isSubmergedModifier)
@@ -1060,7 +1107,7 @@ void main()
 
 				if (isSubmergedModifier)
 				{
-					pointsModifier = pointsModifier + 0.5f + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed);
+					pointsModifier = pointsModifier + 1.0f + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed);
 				}
 
 				// isRainingModifier ***********************************************************************************************************
@@ -1072,7 +1119,7 @@ void main()
 					isRainingModifier = true;
 					
 					stringstream text;
-					text << "hooked is raining, rainLevel: " << 1.0f + MISC::GET_RAIN_LEVEL() << " pointsModifier: " << pointsModifier + 1.0f + MISC::GET_RAIN_LEVEL();
+					text << "hooked is raining, pointsModifier: " << pointsModifier + 0.5f + MISC::GET_RAIN_LEVEL();
 					writeLog(text.str().c_str());
 				}
 				else if (!isRaining() && isRainingModifier)
@@ -1083,7 +1130,7 @@ void main()
 
 				if (isRainingModifier)
 				{
-					pointsModifier = pointsModifier + 1.0f + MISC::GET_RAIN_LEVEL();
+					pointsModifier = pointsModifier + 0.5f + MISC::GET_RAIN_LEVEL();
 				}
 
 				// isSnowingModifier ***********************************************************************************************************
@@ -1095,7 +1142,7 @@ void main()
 					isSnowingModifier = true;
 
 					stringstream text;
-					text << "hooked is snowing, snowLevel: " << 1.5f + MISC::GET_SNOW_LEVEL() << " pointsModifier: " << pointsModifier + 1.5f + MISC::GET_SNOW_LEVEL();
+					text << "hooked is snowing, pointsModifier: " << pointsModifier + 1.0f + MISC::GET_SNOW_LEVEL();
 					writeLog(text.str().c_str());
 				}
 				else if (!isSnowing() && isSnowingModifier)
@@ -1106,19 +1153,69 @@ void main()
 
 				if (isSnowingModifier)
 				{
-					pointsModifier = pointsModifier + 1.5f + MISC::GET_SNOW_LEVEL();
+					pointsModifier = pointsModifier + 1.0f + MISC::GET_SNOW_LEVEL();
 				}
 
-				float pointsDifferences = (pointsModifier != 0.0f) ? getPlayerClothesPoint() - getTemperaturePointsNeeded() - pointsModifier : getPlayerClothesPoint() - getTemperaturePointsNeeded(); // stack value above if pointsModifier != 0.0f, else calculate clothes only
+				pointsDifferences = getPlayerClothesPoint() - getTemperaturePointsNeeded() - pointsModifier; // stack value above if pointsModifier != 0.0f, else calculate clothes only
 
-				int outfitModifier;
+				const char* spriteModifier;
+				const char* toolTipModifier;
 
 				if (pointsDifferences <= -2.0f) // simulate cold
+				{
 					outfitModifier = 0;
-				else if (pointsDifferences > -2.0f && pointsDifferences <= 4.0f) // simulate warm
+					spriteModifier = "RPG_COLD";
+					toolTipModifier = "Cold";
+				}
+				else if (pointsDifferences > -2.0f && pointsDifferences <= 4.5f) // simulate warm
+				{
 					outfitModifier = 1;
-				else if (pointsDifferences > 4.0f) // simulate hot
+					spriteModifier = "RPG_WARM";
+					toolTipModifier = "Warm";
+				}
+				else if (pointsDifferences > 4.5f) // simulate hot
+				{
 					outfitModifier = 2;
+					spriteModifier = "RPG_HOT";
+					toolTipModifier = "Hot";
+				}
+
+				if (temperatureCoreSprite) // only show sprite when true on ini configuration file
+				{
+					int drawTimer;
+					bool drawSprite;
+
+					if (PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_REVEAL_HUD")) && !PAD::IS_CONTROL_PRESSED(0, key("INPUT_OPEN_WHEEL_MENU")) && !HUD::IS_HUD_HIDDEN() && !isPlayerActiveInScenario() && !drawSprite)
+					{
+						drawTimer = getGameTimer();
+						drawSprite = true;
+
+						if (spriteModifier != "RPG_WARM")
+						{
+							stringstream text;
+							text << "hooked player just pressed/pressed INPUT_REVEAL_HUD, spriteModifier: " << spriteModifier;
+							writeLog(text.str().c_str());
+						}
+						//showHelpText(toolTipModifier, 3000);
+					}
+
+					if (drawSprite)
+					{
+						if (!TXD::_HAS_STREAMED_TXD_LOADED(key("RPG_TEXTURES")))
+						{
+							TXD::REQUEST_STREAMED_TEXTURE_DICT("RPG_TEXTURES", false);
+						}
+						else if (TXD::_HAS_STREAMED_TXD_LOADED(key("RPG_TEXTURES")) && spriteModifier != "RPG_WARM")
+						{
+							GRAPHICS::DRAW_SPRITE("RPG_TEXTURES", spriteModifier, 0.25f, 0.9f, 0.045f, 0.065f, 0.0f, 255, 255, 255, 200, false);
+						}
+					}
+
+					if (getGameTimer() - drawTimer > 2800)
+					{
+						drawSprite = false;
+					}
+				}
 
 				(outfitModifier == 2) ? PED::SET_PED_RESET_FLAG(playerPed, 139, true) : PED::SET_PED_RESET_FLAG(playerPed, 139, false); // if outfit is hot, no stamina regen
 				depletionMs = (outfitModifier == 1) ? GetPrivateProfileInt("TIMERS", "CORE_DEPLETION", 120000, ".\\SoftCores.ini") : (GetPrivateProfileInt("TIMERS", "CORE_DEPLETION", 120000, ".\\SoftCores.ini") / 2); // if outfit is not warm, core depletionMs is halved 
@@ -1138,29 +1235,26 @@ void main()
 						{
 						case 0: // cold
 							if(temperatureCoreFx) GRAPHICS::ANIMPOSTFX_PLAY("PlayerHonorLevelBad"); // grayish tint, seems suitable enough to show player is cold
-
 							(ENTITY::GET_ENTITY_HEALTH(playerPed) - temperatureHpPercentageDrain <= 1) ? ENTITY::_SET_ENTITY_HEALTH(playerPed, 1, 1) : ENTITY::_SET_ENTITY_HEALTH(playerPed, (ENTITY::GET_ENTITY_HEALTH(playerPed) - temperatureHpPercentageDrain), 0); // hp outer core drain
-
-							if (getPlayerCore(Core::Health) <= 20 && !isPlayerCoreOverpowered(Core::Health) && !isPlayerPointOverpowered(Core::Health) && !knockedOut) // when reached this threshold, knock player out
+							if (getPlayerCore(Core::Health) <= 20 && getCurrentHealthPercent(playerPed) <= 10 && !isPlayerCoreOverpowered(Core::Health) && !isPlayerPointOverpowered(Core::Health) && !knockedOut) // when reached this threshold, knock player out
 							{
 								TASK::TASK_KNOCKED_OUT(playerPed, 0.0f, false);
 								knockedOut = true;
-								text << "hooked cold effect on health less than 20%, knockedOut = true, next occurence after " << temperatureMs << " ms pointsDifferences: " << pointsDifferences << " raw: " << getPlayerClothesPoint() - getTemperaturePointsNeeded();
+								text << "hooked cold effect on health less than 20%, knockedOut = true, next occurence after " << temperatureMs * 2 << " ms clothesPoints: " << getPlayerClothesPoint() << " pointsNeeded: " << getTemperaturePointsNeeded() << " pointsModifier: " << pointsModifier;
 								writeLog(text.str().c_str());
 							}
 							else
 							{
-								text << "hooked cold effect, next occurence after " << temperatureMs << " ms pointsDifferences: " << pointsDifferences << " raw: " << getPlayerClothesPoint() - getTemperaturePointsNeeded();
+								text << "hooked cold effect, next occurence after " << temperatureMs << " ms clothesPoints: " << getPlayerClothesPoint() << " pointsNeeded: " << getTemperaturePointsNeeded() << " pointsModifier: " << pointsModifier;
 								writeLog(text.str().c_str());
 								knockedOut = false;
 							}
-
 							break;
 						case 1: // warm
 							break;
 						case 2: // hot
 							if (temperatureCoreFx) GRAPHICS::ANIMPOSTFX_PLAY("PlayerHonorLevelGood"); // reddish tint, seems suitable enough to show player is hot
-							text << "hooked hot effect, next occurence after " << temperatureMs << " ms pointsDifferences: " << pointsDifferences << " raw: " << getPlayerClothesPoint() - getTemperaturePointsNeeded();
+							text << "hooked hot effect, next occurence after " << temperatureMs << " ms clothesPoints: " << getPlayerClothesPoint() << " pointsNeeded: " << getTemperaturePointsNeeded() << " pointsModifier: " << pointsModifier;
 							writeLog(text.str().c_str());
 							break;
 						default:
@@ -1168,7 +1262,7 @@ void main()
 						}
 
 						pointsModifier = 0.0f; // reset pointsModifier to recalculate above
-
+						temperatureMs = (outfitModifier == 2 || knockedOut) ? (GetPrivateProfileInt("TIMERS", "TEMPERATURE_PENALTY", 8000, ".\\SoftCores.ini") * 2) : GetPrivateProfileInt("TIMERS", "TEMPERATURE_PENALTY", 8000, ".\\SoftCores.ini"); // if outfit is hot/knockedOut previously, temperatureMs is doubled 
 						temperatureTimer = getGameTimer() + temperatureMs; // if knocked out previously, the next timer will be longer to allow recovery period
 					}
 				}
@@ -1189,7 +1283,7 @@ void main()
 
 					if (PLAYER::IS_PLAYER_FREE_AIMING(playerID) && WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &aimedWeapon, false, 0, true))
 					{
-						if (!isWeaponUnique(aimedWeapon) && !isWeaponThrowableOnly(aimedWeapon)) // if not unique and not throwable
+						if (!isWeaponItem(aimedWeapon) && !isWeaponThrowableOnly(aimedWeapon) && !isWeaponMelee(aimedWeapon)) // if not unique and not throwable
 						{
 							PED::SET_PED_RESET_FLAG(playerPed, 139, true); // disable stamina outer core regen
 
@@ -1254,19 +1348,9 @@ void main()
 					text << "hooked main core drain effect, next core drain occurence after " << depletionMs << " ms playerHpDrain: " << playerHpDrain << " playerStDrain: " << playerStDrain << " playerDeDrain: " << playerDeDrain;
 					writeLog(text.str().c_str());
 
-					if (temperatureCore)
+					if (temperatureCore) // this one to be called every depletionTimer
 					{
 						float temperatureModifier;
-						float pointsDifferences = getPlayerClothesPoint() - getTemperaturePointsNeeded();
-						int outfitModifier;
-
-						if (pointsDifferences <= -2.0f) // simulate cold
-							outfitModifier = 0;
-						else if (pointsDifferences > -2.0f && pointsDifferences <= 4.0f) // simulate warm
-							outfitModifier = 1;
-						else if (pointsDifferences > 4.0f) // simulate hot
-							outfitModifier = 2;
-
 						stringstream text;
 
 						switch (outfitModifier)
@@ -1378,97 +1462,98 @@ void main()
 
 					if (loseHandWeapon) // lose weapon on hand
 					{
-						Hash primaryHand;
-						Hash secondaryHand;
+						const int weaponAttachPoints[] = { 0, 1 }; // weapon attachment points for both hands
 
-						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &primaryHand, false, 0, true)) // WEAPON_ATTACH_POINT_HAND_PRIMARY
+						for (const int& weaponAttachPoint : weaponAttachPoints)
 						{
-							if (!isWeaponUnique(primaryHand) && !isWeaponGroupMelee(primaryHand)) // if not, melee weapon that can be thrown will also be removed
+							Hash weaponHash;
+							if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &weaponHash, false, weaponAttachPoint, true))
 							{
-								stringstream text;
-								text << "WEAPON_ATTACH_POINT_HAND_PRIMARY: " << WEAPON::_GET_WEAPON_NAME(primaryHand) << " ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, primaryHand) << " removed";
-								writeLog(text.str().c_str());
-								WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, primaryHand), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, primaryHand), 0x2188E0A3);
-								WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, primaryHand, true, NULL);
-							}
-						}
-
-						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &secondaryHand, false, 1, true)) // WEAPON_ATTACH_POINT_HAND_SECONDARY 
-						{
-							if (!isWeaponUnique(secondaryHand) && !isWeaponGroupMelee(secondaryHand))
-							{
-								stringstream text;
-								text << "WEAPON_ATTACH_POINT_HAND_SECONDARY: " << WEAPON::_GET_WEAPON_NAME(secondaryHand) << " ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, secondaryHand) << " removed";
-								writeLog(text.str().c_str());
-								WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, secondaryHand), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, primaryHand), 0x2188E0A3);
-								WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, secondaryHand, true, NULL);
+								if (!isWeaponItem(weaponHash) && !isWeaponMelee(weaponHash)) // check first for weapon is item or melee
+								{
+									if (!loseExoticWeapon)
+									{
+										if (!isWeaponExotic(weaponHash)) // check for exotic if loseExoticWeapon is set to false
+										{
+											stringstream text;
+											text << WEAPON::_GET_WEAPON_NAME(weaponHash) << " removed with ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash);
+											writeLog(text.str().c_str());
+											WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, weaponHash), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash), 0x2188E0A3);
+											WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, weaponHash, true, NULL);
+										}
+									}
+									else
+									{
+										stringstream text;
+										text << WEAPON::_GET_WEAPON_NAME(weaponHash) << " removed with ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash);
+										writeLog(text.str().c_str());
+										WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, weaponHash), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash), 0x2188E0A3);
+										WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, weaponHash, true, NULL);
+									}
+								}
 							}
 						}
 					}
 
 					if (loseBodyWeapon) // lose weapon on body
 					{
-						Hash pistolR;
-						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &pistolR, false, 2, true)) // WEAPON_ATTACH_POINT_PISTOL_R
-						{
-							if (!isWeaponUnique(pistolR) && !isWeaponGroupMelee(pistolR))
-							{
-								stringstream text;
-								text << "WEAPON_ATTACH_POINT_PISTOL_R: " << WEAPON::_GET_WEAPON_NAME(pistolR) << " ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, pistolR) << " removed";
-								writeLog(text.str().c_str());
-								WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, pistolR), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, pistolR), 0x2188E0A3);
-								WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, pistolR, true, NULL);
-							}
-						}
+						const int weaponAttachPoints[] = { 2, 3, 9, 10, 6 }; // all weapon attachment points on body
 
-						Hash pistolL;
-						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &pistolL, false, 3, true)) // WEAPON_ATTACH_POINT_PISTOL_L
+						for (const int& weaponAttachPoint : weaponAttachPoints)
 						{
-							if(!isWeaponUnique(pistolL) && !isWeaponGroupMelee(pistolL))
+							Hash weaponHash;
+							if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &weaponHash, false, weaponAttachPoint, true))
 							{
-								stringstream text;
-								text << "WEAPON_ATTACH_POINT_PISTOL_L: " << WEAPON::_GET_WEAPON_NAME(pistolL) << " ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, pistolL) << " removed";
-								writeLog(text.str().c_str());
-								WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, pistolL), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, pistolL), 0x2188E0A3);
-								WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, pistolL, true, NULL);
-							}
-						}
-
-						Hash rifle;
-						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &rifle, false, 9, true)) // WEAPON_ATTACH_POINT_RIFLE
-						{
-							if (!isWeaponUnique(rifle) && !isWeaponGroupMelee(rifle))
-							{
-								stringstream text;
-								text << "WEAPON_ATTACH_POINT_RIFLE: " << WEAPON::_GET_WEAPON_NAME(rifle) << " ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, rifle) << " removed";
-								writeLog(text.str().c_str());
-								WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, rifle), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, rifle), 0x2188E0A3);
-								WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, rifle, true, NULL);
-							}
-						}
-
-						Hash rifleAlt;
-						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &rifleAlt, false, 10, true)) // WEAPON_ATTACH_POINT_RIFLE_ALTERNATE
-						{
-							if (!isWeaponUnique(rifleAlt) && !isWeaponGroupMelee(rifleAlt))
-							{
-								stringstream text;
-								text << "WEAPON_ATTACH_POINT_RIFLE_ALTERNATE: " << WEAPON::_GET_WEAPON_NAME(rifleAlt) << " ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, rifleAlt) << " removed";
-								writeLog(text.str().c_str());
-								WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, rifleAlt), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, rifleAlt), 0x2188E0A3);
-								WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, rifleAlt, true, NULL);
-							}
-						}
-
-						Hash throwable;
-						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &throwable, false, 6, true)) // WEAPON_ATTACH_POINT_THROWER
-						{
-							if (!isWeaponUnique(throwable) && !isWeaponGroupMelee(throwable) && isWeaponThrowableOnly(throwable)) // if not, melee weapon that can be thrown such as hewit will also be removed
-							{
-								WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, throwable, true, NULL);
-								stringstream text;
-								text << "WEAPON_ATTACH_POINT_THROWER: " << WEAPON::_GET_WEAPON_NAME(throwable) << " removed";
-								writeLog(text.str().c_str());
+								if (!isWeaponItem(weaponHash) && !isWeaponMelee(weaponHash)) // check first for weapon is item or melee
+								{
+									if (weaponAttachPoint == 6)
+									{
+										if (isWeaponThrowableOnly(weaponHash)) // check thrower slot and ensure throwably exclusive only
+										{
+											if (!loseExoticWeapon)
+											{
+												if (!isWeaponExotic(weaponHash)) // check for exotic if loseExoticWeapon is set to false
+												{
+													stringstream text;
+													text << WEAPON::_GET_WEAPON_NAME(weaponHash) << " removed with ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash);
+													writeLog(text.str().c_str());
+													WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, weaponHash), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash), 0x2188E0A3);
+													WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, weaponHash, true, NULL);
+												}
+											}
+											else
+											{
+												stringstream text;
+												text << WEAPON::_GET_WEAPON_NAME(weaponHash) << " removed with ammo: " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash);
+												writeLog(text.str().c_str());
+												WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, weaponHash), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash), 0x2188E0A3);
+												WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, weaponHash, true, NULL);
+											}
+										}
+									}
+									else
+									{
+										if (!loseExoticWeapon)
+										{
+											if (!isWeaponExotic(weaponHash)) // check for exotic if loseExoticWeapon is set to false
+											{
+												stringstream text;
+												text << WEAPON::_GET_WEAPON_NAME(weaponHash) << " removed with ammo " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash);
+												writeLog(text.str().c_str());
+												WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, weaponHash), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash), 0x2188E0A3);
+												WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, weaponHash, true, NULL);
+											}
+										}
+										else
+										{
+											stringstream text;
+											text << WEAPON::_GET_WEAPON_NAME(weaponHash) << " removed with ammo " << WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash);
+											writeLog(text.str().c_str());
+											WEAPON::_REMOVE_AMMO_FROM_PED_BY_TYPE(playerPed, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(playerPed, weaponHash), WEAPON::GET_AMMO_IN_PED_WEAPON(playerPed, weaponHash), 0x2188E0A3);
+											WEAPON::REMOVE_WEAPON_FROM_PED(playerPed, weaponHash, true, NULL);
+										}
+									}
+								}
 							}
 						}
 					}
@@ -1498,6 +1583,8 @@ void main()
 
 				if (isPlayerMoving() && !isPlayerJustDied() && isPlayerPlaying() && coresPenalty && deathPenalty)
 				{
+					setPlayerPoint(Core::Stamina, getMaxPlayerPoint(Core::Stamina)); // restore outer core stamina until max
+					setPlayerPoint(Core::DeadEye, getMaxPlayerPoint(Core::DeadEye)); // restore outer core  deadeye until max
 					coresPenalty = false;
 					deathPenalty = false;
 					writeLog("hooked stopped applying death penalty to player cores");
@@ -1541,8 +1628,6 @@ void main()
 		{
 			Ped peds[1024];
 			int count = worldGetAllPeds(peds, pedsRange); // get all peds within range and do stuffs
-
-			PED::SET_PED_CONFIG_FLAG(playerPed, 263, false); // disable playerPed headshot immunity
 
 			if (aiRegen)
 			{
