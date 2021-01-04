@@ -155,6 +155,7 @@ float getTimeOfDayModifier()
 		return 2.0f;
 	else if (CLOCK::GET_CLOCK_HOURS() >= 23 && CLOCK::GET_CLOCK_HOURS() < 5)
 		return 2.5f;
+	else return 0.0f;
 }
 
 void setAIDamageModifer(float melee, float weapon)
@@ -446,9 +447,9 @@ bool isDeadEyeActivated()
 		|| PAD::IS_CONTROL_PRESSED(0, key("INPUT_SPECIAL_ABILITY_PC"));
 }
 
-bool isPlayerOutside()
+bool isPlayerIndoor()
 {
-	return (INTERIOR::GET_INTERIOR_FROM_ENTITY(PLAYER::PLAYER_PED_ID()) == 0) ? true : false;
+	return (INTERIOR::GET_INTERIOR_FROM_ENTITY(PLAYER::PLAYER_PED_ID()) != 0) ? true : false;
 }
 
 bool isSubmerged()
@@ -568,13 +569,14 @@ int getGameTimer()
 }
 
 // temperature mechanics
+// arbitrary accumulated points for clothing player is wearing
 float getPlayerClothesPoint()
 {
 	float clothPoints{};
 	if (isPlayerWearing(Clothes::Hats)) clothPoints += 0.5f;
-	if (isPlayerWearing(Clothes::Shirts)) clothPoints += 1.0f;
+	if (isPlayerWearing(Clothes::Shirts)) clothPoints += 1.0f; // assured points
 	if (isPlayerWearing(Clothes::Vests)) clothPoints += 1.0f;
-	if (isPlayerWearing(Clothes::Pants)) clothPoints += 1.5f;
+	if (isPlayerWearing(Clothes::Pants)) clothPoints += 1.5f; // assured points
 	if (isPlayerWearing(Clothes::Boots)) clothPoints += 1.0f;
 	if (isPlayerWearing(Clothes::Cloaks)) clothPoints += 2.5f;
 	if (isPlayerWearing(Clothes::Neckwear)) clothPoints += 0.5f;
@@ -598,6 +600,7 @@ float getSurroundingTemperature()
 	return (MISC::_SHOULD_USE_METRIC_TEMPERATURE()) ? temperature: celciusToFarenheit(temperature);
 }
 
+// arbitrary values for temperature points needed for player clothing to match
 float getTemperaturePointsNeeded()
 {
 	float temperaturePoints[] = { -20.0f, -16.0f, -12.0f, -8.0f, -4.0f, 0.0f, 4.0f, 8.0f, 12.0f, 16.0f, 20.0f, 24.0f, 28.0f }; // based on a climate/temperature map by hopper on reddit https://i.redd.it/p6f6etiw7by11.jpg in celcius
@@ -639,12 +642,13 @@ float getTemperaturePointsNeeded()
 		return 4.0f;
 	else if (getSurroundingTemperature() >= temperaturePoints[12]) // hottest
 		return 3.5f;
+	else return 0.0f;
 }
 
 void main()
 {
-	initialize();
-	Ped playerPed = PLAYER::PLAYER_PED_ID();
+	bool enableLogging = GetPrivateProfileInt("DEBUG", "ENABLE_LOGGING", 0, ".\\SoftCores.ini");
+	if(enableLogging) initialize();
 
 	// immersion
 	bool immersionFX = GetPrivateProfileInt("IMMERSION", "IMMERSION_FX", 1, ".\\SoftCores.ini");
@@ -670,6 +674,8 @@ void main()
 	bool headshotImmunity = GetPrivateProfileInt("IMMERSION", "HEADSHOT_IMMUNITY", 0, ".\\SoftCores.ini");
 
 	// dead eye no reload usage
+	Ped playerPed = PLAYER::PLAYER_PED_ID();
+
 	Hash primaryWeapon;
 	Hash secondaryWeapon;
 
@@ -702,9 +708,10 @@ void main()
 	int aimTimer = getGameTimer() + aimMs;
 
 	// core modifiers
-	bool temperatureCore = GetPrivateProfileInt("CORE_MODIFIER", "TEMPERATURE_CORE", 1, ".\\SoftCores.ini");
-	bool temperatureCoreFx = GetPrivateProfileInt("CORE_MODIFIER", "TEMPERATURE_CORE_FX", 1, ".\\SoftCores.ini");
-	bool temperatureCoreSprite = GetPrivateProfileInt("CORE_MODIFIER", "TEMPERATURE_CORE_SPRITE", 1, ".\\SoftCores.ini");
+	bool isPlaying{};
+	bool temperatureCore = GetPrivateProfileInt("TEMPERATURE_MODIFIER", "TEMPERATURE_CORE", 1, ".\\SoftCores.ini");
+	bool temperatureCoreFx = GetPrivateProfileInt("TEMPERATURE_MODIFIER", "TEMPERATURE_CORE_FX", 1, ".\\SoftCores.ini");
+	bool temperatureCoreSprite = GetPrivateProfileInt("TEMPERATURE_MODIFIER", "TEMPERATURE_CORE_SPRITE", 1, ".\\SoftCores.ini");
 	bool aimPenalty = GetPrivateProfileInt("CORE_MODIFIER", "AIM_PENALTY", 1, ".\\SoftCores.ini");
 
 	int playerHpModifier = GetPrivateProfileInt("CORE_MODIFIER", "PLAYER_HEALTH_CORE", 4, ".\\SoftCores.ini");
@@ -714,6 +721,7 @@ void main()
 	int horseStModifier = GetPrivateProfileInt("CORE_MODIFIER", "HORSE_STAMINA_CORE", 8, ".\\SoftCores.ini");
 
 	// death stuffs
+	bool isInMission{};
 	bool penaltyOnDeath = GetPrivateProfileInt("DEATH_PENALTY", "PENALTY_ON_DEATH", 1, ".\\SoftCores.ini");
 	bool loseHandWeapon = GetPrivateProfileInt("DEATH_PENALTY", "LOSE_HAND_WEAPON", 1, ".\\SoftCores.ini");
 	bool loseBodyWeapon = GetPrivateProfileInt("DEATH_PENALTY", "LOSE_BODY_WEAPON", 1, ".\\SoftCores.ini");
@@ -832,13 +840,11 @@ void main()
 						{
 							MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_IN"));
 							MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
-							PLAYER::SET_POLICE_RADAR_BLIPS(true);
 						}
 						else if (!PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // not within player fov
 						{
 							MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
 							MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_OUT_SLOW"));
-							PLAYER::SET_POLICE_RADAR_BLIPS(false);
 						}
 					}
 				}
@@ -857,21 +863,17 @@ void main()
 				isNotinControl = true;
 				lastHealthCore = getPlayerCore(Core::Health);
 				lastDeadEyeCore = getPlayerCore(Core::DeadEye);
-				stringstream text;
-				text << "hooked player is not in control, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
-				writeLog(text.str().c_str());
 			}
 			else if (isPlayerInControl() && isNotinControl) // set back to false when player regain control
 			{
 				isNotinControl = false;
-				writeLog("hooked player is in control");
 			}
 
 			if (isNotinControl && isPlayerStartedSleepScenario() && !isSleeping) // once hooked the first entry point of scenario which is -1 while not in control, stop hooking at all
 			{
 				isSleeping = true;
 				stringstream text;
-				text << "hooked entry point of sleep scenario while is not in control, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
+				text << "hooked player is sleeping while not in control, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
 				writeLog(text.str().c_str());
 			}
 			else if (!isNotinControl && isPlayerStartedSleepScenario() && !isSleeping) // once hooked the first entry point of scenario which is -1 while in control, stop hooking at all
@@ -881,7 +883,16 @@ void main()
 				lastHealthCore = getPlayerCore(Core::Health);
 				lastDeadEyeCore = getPlayerCore(Core::DeadEye);
 				stringstream text;
-				text << "hooked entry point of sleep scenario while in control, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
+				text << "hooked player is sleeping while in control, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
+				writeLog(text.str().c_str());
+			}
+			else if (isRaining() && PED::_IS_PED_USING_SCENARIO_HASH(playerPed, key("PROP_PLAYER_SLEEP_TENT_A_FRAME")) && !isSleeping) // if player sets camp when its raining, will go directly to tent, hence not initiating -1 scenario point i reckon
+			{
+				isSleeping = true;
+				lastHealthCore = getPlayerCore(Core::Health);
+				lastDeadEyeCore = getPlayerCore(Core::DeadEye);
+				stringstream text;
+				text << "hooked player is sleeping while raining, lastHealthCore: " << lastHealthCore << " lastDeadEyeCore: " << lastDeadEyeCore;
 				writeLog(text.str().c_str());
 			}
 
@@ -906,7 +917,7 @@ void main()
 				lastStaminaCore = getPlayerCore(Core::Stamina);
 				isBathing = true;
 				stringstream text;
-				text << "hooked task move network state: " << TASK::GET_TASK_MOVE_NETWORK_STATE(playerPed) << " lastHealthCore: " << lastHealthCore << " lastStaminaCore: " << lastStaminaCore;
+				text << "hooked player is bathing, lastHealthCore: " << lastHealthCore << " lastStaminaCore: " << lastStaminaCore;
 				writeLog(text.str().c_str());
 			}
 
@@ -923,24 +934,18 @@ void main()
 		// START DISABLE GLOW PART ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		if (!pickupsGlow)
 		{
-			Pickup pickups[1024];
-			int pickupsRange = 1024;
+			Pickup pickups[512];
+			int pickupsRange = 512;
 			int pCount = worldGetAllPickups(pickups, pickupsRange); // disabling weapon pickups glow
-			for (int i = 0; i < pCount; i++)
-			{
-				GRAPHICS::_0x50C14328119E1DD1(pickups[i], true); // yep this native below directly disables the glow
-			}
+			for (int i = 0; i < pCount; i++) GRAPHICS::_0x50C14328119E1DD1(pickups[i], true); // yep this native below directly disables the glow
 		}
 
 		if (!objectsGlow)
 		{
-			Object objects[1024];
-			int objectsRange = 1024;
+			Object objects[512];
+			int objectsRange = 512;
 			int oCount = worldGetAllObjects(objects, objectsRange); // disabling lootable object such as apple, carrot and such
-			for (int i = 0; i < oCount; i++)
-			{
-				GRAPHICS::_0x50C14328119E1DD1(objects[i], true);
-			}
+			for (int i = 0; i < oCount; i++) GRAPHICS::_0x50C14328119E1DD1(objects[i], true);
 		}
 		// END DISABLE GLOW PART ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -978,16 +983,15 @@ void main()
 		// END OF IMMERSION PART ================================================================================================================
 
 		// CORE PART ============================================================================================================================
-		bool isPlaying;
 		if (isPlayerPlaying() && !isPlaying)
 		{
 			isPlaying = true;
-			writeLog("isPlaying = true");
+			writeLog("hooked player is playing");
 		}
 		else if (!isPlayerPlaying() && isPlaying)
 		{
 			isPlaying = false;
-			writeLog("isPlaying = false");
+			writeLog("hooked player is not playing");
 		}
 		
 		bool isStoryPostFX;
@@ -1003,9 +1007,9 @@ void main()
 			writeLog("hooked isStoryPostFX stopped");
 		}
 
-		if ((isPlayerPlaying() && !isStoryPostFX) || (ENTITY::DOES_ENTITY_EXIST(horsePed) && !ENTITY::IS_ENTITY_DEAD(horsePed))) // do this first else will crash on new game, also disable the core part of the mod while in storyPostFX
+		if ((isPlaying && !isStoryPostFX) || (ENTITY::DOES_ENTITY_EXIST(horsePed) && !ENTITY::IS_ENTITY_DEAD(horsePed))) // do this first else will crash on new game, also disable the core part of the mod while in storyPostFX
 		{
-			float playerHealthRegen = (float)GetPrivateProfileInt("CORE_MODIFIER", "PLAYER_HEALTH_REGEN", 50, ".\\SoftCores.ini") / 100;
+			float playerHealthRegen = (float)GetPrivateProfileInt("CORE_MODIFIER", "PLAYER_HEALTH_REGEN", 50, ".\\SoftCores.ini") / 100.0f;
 			int playerHpPercentageDrain = GetPrivateProfileInt("CORE_MODIFIER", "PLAYER_HEALTH_PENALTY", 4, ".\\SoftCores.ini") * ENTITY::GET_ENTITY_MAX_HEALTH(playerPed, 0) / 100;
 			int horseHpPercentageDrain = GetPrivateProfileInt("CORE_MODIFIER", "HORSE_HEALTH_PENALTY", 4, ".\\SoftCores.ini") * ENTITY::GET_ENTITY_MAX_HEALTH(horsePed, 0) / 100;
 			
@@ -1015,7 +1019,7 @@ void main()
 
 			if (temperatureCore) // this on to be called every tick
 			{
-				float pointsModifier = 0.0f;
+				float pointsModifier = 0.0f; // default no points modifier, just uses surrounding temperature as base value to determine clothes points needed
 				
 				// isNearFireModifier ***********************************************************************************************************
 
@@ -1023,180 +1027,176 @@ void main()
 				Vector3 nearestFire;
 				Vector3 playerPos = ENTITY::GET_ENTITY_COORDS(playerPed, true, true);
 
+				float fireModifier = (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "FIRE_MODIFIER", 50, ".\\SoftCores.ini") / 100.0f;
+
 				if (FIRE::GET_CLOSEST_FIRE_POS(&nearestFire, playerPos.x, playerPos.y, playerPos.z))
 				{
 					if (MISC::GET_DISTANCE_BETWEEN_COORDS(playerPos.x, playerPos.y, playerPos.z, nearestFire.x, nearestFire.y, nearestFire.z, true) < 4.0f && !isNearFireModifier)
 					{
 						isNearFireModifier = true;
 						stringstream text;
-						text << "hooked player close to fire, pointsModifier: " << pointsModifier - 0.5f;
+						text << "hooked player near fire, fireModifer: " << fireModifier << " positive points (hotness)";
 						writeLog(text.str().c_str());
 					}
 					else if (MISC::GET_DISTANCE_BETWEEN_COORDS(playerPos.x, playerPos.y, playerPos.z, nearestFire.x, nearestFire.y, nearestFire.z, true) > 4.0f && isNearFireModifier)
 					{
 						isNearFireModifier = false;
-						stringstream text;
 						writeLog("hooked player far from fire");
 					}
 				}
 
-				if (isNearFireModifier)
-				{
-					pointsModifier = pointsModifier - 0.5f; // minus pointsModifier value here to subtract to overall value later
-				}
+				if (isNearFireModifier) pointsModifier = pointsModifier + fireModifier; // positive point value for hotness
 
 				// isCampfireModifier ***********************************************************************************************************
 
 				bool isCampfireModifier;
 
+				float campFireModifier = (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "CAMPFIRE_MODIFIER", 50, ".\\SoftCores.ini") / 100.0f;
+
 				if (isPlayerInControl() && isPlayerStartedCampScenario() && !isCampfireModifier)
 				{
 					isCampfireModifier = true;
-
 					stringstream text;
-					text << "hooked player started campfire scenario, pointsModifier: " << pointsModifier - 0.5f;
+					text << "hooked player started campfire scenario, campFireModifier: " << campFireModifier << " positive points (hotness)";
 					writeLog(text.str().c_str());
 				}
-
-				if (isCampfireModifier)
+				else if (isPlayerInControl() && isPlayerMoving() && !isPlayerStartedCampScenario() && isCampfireModifier)
 				{
-					pointsModifier = pointsModifier - 0.5f; // minus pointsModifier value here to subtract to overall value later
-					isCampfireModifier = (isPlayerMoving() && !isPlayerStartedCampScenario()) ? false : true;
+					isCampfireModifier = false;
+					writeLog("hooked player stopped campfire scenario");
 				}
+
+				if (isCampfireModifier) pointsModifier = pointsModifier + campFireModifier; // positive point value for hotness
 
 				// isNotOutsideModifier ***********************************************************************************************************
 
-				bool isInsideModifier;
+				bool isIndoorModifier;
 				
-				if (!isPlayerOutside() && !isInsideModifier)
+				float indoorModifier = (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "INDOOR_MODIFIER", 100, ".\\SoftCores.ini") / 100.0f;
+
+				if (isPlayerIndoor() && !isIndoorModifier)
 				{
-					isInsideModifier = true;
+					isIndoorModifier = true;
 
 					stringstream text;
-					text << "hooked player is inside interior: " << INTERIOR::GET_INTERIOR_FROM_ENTITY(playerPed) << " pointsModifier: " << pointsModifier - 1.5f;
+					text << "hooked player is indoor, indoorModifier: " << indoorModifier << " positive points (hotness)";
 					writeLog(text.str().c_str());
 				}
-				else if (isPlayerOutside() && isInsideModifier)
+				else if (!isPlayerIndoor() && isIndoorModifier)
 				{
-					isInsideModifier = false;
-					writeLog("hooked player is outside");
+					isIndoorModifier = false;
+					writeLog("hooked player is outdoor");
 				}
 
-				if (isInsideModifier)
-				{
-					pointsModifier = pointsModifier - 1.0f; // minus pointsModifier value here to subtract to overall value later
-				}
+				if (isIndoorModifier) pointsModifier = pointsModifier + indoorModifier; // positive point value for hotness
 
 				// isSubmergedModifier ***********************************************************************************************************
 
 				bool isSubmergedModifier;
 
+				float submergedModifier = (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "SUBMERGED_MODIFIER", 100, ".\\SoftCores.ini") / 100.0f;
+
 				if (isSubmerged() && !isSubmergedModifier)
 				{
 					isSubmergedModifier = true;
-
+					submergedModifier = submergedModifier + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed);
 					stringstream text;
-					text << "hooked player submerged, pointsModifier: " << pointsModifier + 1.0f + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed);
+					text << "hooked player is submerged, submergedModifier: " << submergedModifier << " negative points (coldness)";
 					writeLog(text.str().c_str());
 				}
 				else if (!isSubmerged() && isSubmergedModifier)
 				{
 					isSubmergedModifier = false;
-					writeLog("hooked player no longer submerged");
+					writeLog("hooked player is no longer submerged");
 				}
 
-				if (isSubmergedModifier)
+				if (isSubmergedModifier) pointsModifier = pointsModifier - submergedModifier; // negative point value for coldness
+
+				if (!isIndoorModifier) // only apply raining & snowing modifier when player is not indoor
 				{
-					pointsModifier = pointsModifier + 1.0f + ENTITY::GET_ENTITY_SUBMERGED_LEVEL(playerPed);
-				}
+					// isRainingModifier ***********************************************************************************************************
 
-				// isRainingModifier ***********************************************************************************************************
-
-				bool isRainingModifier;
-
-				if (isRaining() && !isRainingModifier)
-				{
-					isRainingModifier = true;
+					bool isRainingModifier;
 					
-					stringstream text;
-					text << "hooked is raining, pointsModifier: " << pointsModifier + 0.5f + MISC::GET_RAIN_LEVEL();
-					writeLog(text.str().c_str());
+					float rainingModifier = (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "RAINING_MODIFIER", 50, ".\\SoftCores.ini") / 100.0f;
+
+					if (isRaining() && !isRainingModifier)
+					{
+						isRainingModifier = true;
+						rainingModifier = rainingModifier + MISC::GET_RAIN_LEVEL();
+						stringstream text;
+						text << "hooked is raining, rainingModifier: " << rainingModifier << " negative points (coldness)";
+						writeLog(text.str().c_str());
+					}
+					else if (!isRaining() && isRainingModifier)
+					{
+						isRainingModifier = false;
+						writeLog("hooked is no longer raining");
+					}
+
+					if (isRainingModifier) pointsModifier = pointsModifier - rainingModifier; // negative point value for coldness
+
+					// isSnowingModifier ***********************************************************************************************************
+
+					bool isSnowingModifier;
+
+					float snowingModifier = (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "SNOWING_MODIFIER", 100, ".\\SoftCores.ini") / 100.0f;
+
+					if (isSnowing() && !isSnowingModifier)
+					{
+						isSnowingModifier = true;
+						snowingModifier = snowingModifier + MISC::GET_SNOW_LEVEL();
+						stringstream text;
+						text << "hooked is snowing, snowingModifier: " << snowingModifier << " negative points (coldness)";
+						writeLog(text.str().c_str());
+					}
+					else if (!isSnowing() && isSnowingModifier)
+					{
+						isSnowingModifier = false;
+						writeLog("hooked is no longer snowing");
+					}
+
+					if (isSnowingModifier) pointsModifier = pointsModifier - snowingModifier;  // negative point value for coldness
 				}
-				else if (!isRaining() && isRainingModifier)
-				{
-					isRainingModifier = false;
-					writeLog("hooked is no longer raining");
-				}
 
-				if (isRainingModifier)
-				{
-					pointsModifier = pointsModifier + 0.5f + MISC::GET_RAIN_LEVEL();
-				}
-
-				// isSnowingModifier ***********************************************************************************************************
-
-				bool isSnowingModifier;
-
-				if (isSnowing() && !isSnowingModifier)
-				{
-					isSnowingModifier = true;
-
-					stringstream text;
-					text << "hooked is snowing, pointsModifier: " << pointsModifier + 1.0f + MISC::GET_SNOW_LEVEL();
-					writeLog(text.str().c_str());
-				}
-				else if (!isSnowing() && isSnowingModifier)
-				{
-					isSnowingModifier = false;
-					writeLog("hooked is no longer snowing");
-				}
-
-				if (isSnowingModifier)
-				{
-					pointsModifier = pointsModifier + 1.0f + MISC::GET_SNOW_LEVEL();
-				}
-
-				pointsDifferences = getPlayerClothesPoint() - getTemperaturePointsNeeded() - pointsModifier; // stack value above if pointsModifier != 0.0f, else calculate clothes only
+				pointsDifferences = getPlayerClothesPoint() - getTemperaturePointsNeeded() + pointsModifier; // stack with pointsModifer which accumulates +ve points for hotness and -ve points for coldness
 
 				const char* spriteModifier;
-				const char* toolTipModifier;
 
-				if (pointsDifferences <= -2.0f) // simulate cold
+				if (pointsDifferences < -2.5f) // simulate cold if pointDifferences is less than -2.5, say player is wearing 7.0 points of clothing vs 10.0 points of temperature, outfitModifier is cold
 				{
 					outfitModifier = 0;
 					spriteModifier = "RPG_COLD";
-					toolTipModifier = "Cold";
 				}
-				else if (pointsDifferences > -2.0f && pointsDifferences <= 4.5f) // simulate warm
+				else if (pointsDifferences >= -2.5f && pointsDifferences < 4.5f) // simulate warm, ideal condition
 				{
 					outfitModifier = 1;
 					spriteModifier = "RPG_WARM";
-					toolTipModifier = "Warm";
 				}
-				else if (pointsDifferences > 4.5f) // simulate hot
+				else if (pointsDifferences >= 4.5f) // simulate hot if pointDifferences is more than 4.5, say player is wearing 10.0 points of clothing vs 5.5 points of temperature, outfitModifier is hot
 				{
 					outfitModifier = 2;
 					spriteModifier = "RPG_HOT";
-					toolTipModifier = "Hot";
 				}
+
+				bool isBathing;
+
+				if (isPlayerBathing() && !isBathing) isBathing = true; // this can only be entered during inital bathing moment
+				else if (!isPlayerBathing() && isBathing) isBathing = (isPlayerMoving()) ? false : true; // set to false when player starts moving
 
 				if (temperatureCoreSprite) // only show sprite when true on ini configuration file
 				{
 					int drawTimer;
 					bool drawSprite;
 
-					if (PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_REVEAL_HUD")) && !PAD::IS_CONTROL_PRESSED(0, key("INPUT_OPEN_WHEEL_MENU")) && !HUD::IS_HUD_HIDDEN() && !isPlayerActiveInScenario() && !drawSprite)
+					if (PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_REVEAL_HUD")) && !PAD::IS_CONTROL_PRESSED(0, key("INPUT_OPEN_WHEEL_MENU")) && !HUD::IS_HUD_HIDDEN() && !isPlayerActiveInScenario() && !isBathing && !drawSprite)
 					{
 						drawTimer = getGameTimer();
 						drawSprite = true;
 
-						if (spriteModifier != "RPG_WARM")
-						{
-							stringstream text;
-							text << "hooked player just pressed/pressed INPUT_REVEAL_HUD, spriteModifier: " << spriteModifier;
-							writeLog(text.str().c_str());
-						}
-						//showHelpText(toolTipModifier, 3000);
+						stringstream text;
+						text << "hooked player is showing sprite, spriteModifier: " << spriteModifier << " overall clothing points: " << getPlayerClothesPoint() << " needs: " << getTemperaturePointsNeeded() + pointsModifier;
+						writeLog(text.str().c_str());
 					}
 
 					if (drawSprite)
@@ -1207,24 +1207,20 @@ void main()
 						}
 						else if (TXD::_HAS_STREAMED_TXD_LOADED(key("RPG_TEXTURES")) && spriteModifier != "RPG_WARM")
 						{
-							GRAPHICS::DRAW_SPRITE("RPG_TEXTURES", spriteModifier, 0.25f, 0.9f, 0.045f, 0.065f, 0.0f, 255, 255, 255, 200, false);
+							GRAPHICS::DRAW_SPRITE("RPG_TEXTURES", spriteModifier, 0.25f, 0.9f, 0.045f, 0.07f, 0.0f, 240, 240, 240, 180, false);
 						}
 					}
 
-					if (getGameTimer() - drawTimer > 2800)
-					{
-						drawSprite = false;
-					}
+					if (getGameTimer() - drawTimer > 3000) drawSprite = false; // only show for 3 seconds
 				}
 
 				(outfitModifier == 2) ? PED::SET_PED_RESET_FLAG(playerPed, 139, true) : PED::SET_PED_RESET_FLAG(playerPed, 139, false); // if outfit is hot, no stamina regen
-				depletionMs = (outfitModifier == 1) ? GetPrivateProfileInt("TIMERS", "CORE_DEPLETION", 120000, ".\\SoftCores.ini") : (GetPrivateProfileInt("TIMERS", "CORE_DEPLETION", 120000, ".\\SoftCores.ini") / 2); // if outfit is not warm, core depletionMs is halved 
 				
 				bool knockedOut;
 
 				temperatureMs = (outfitModifier == 2 || knockedOut) ? (GetPrivateProfileInt("TIMERS", "TEMPERATURE_PENALTY", 8000, ".\\SoftCores.ini") * 2) : GetPrivateProfileInt("TIMERS", "TEMPERATURE_PENALTY", 8000, ".\\SoftCores.ini"); // if outfit is hot/knockedOut previously, temperatureMs is doubled 
 
-				if (isPlayerInControl()) // returns TRUE if player is in control
+				if (isPlayerInControl() && !isBathing) // returns TRUE if player is in control && not bathing
 				{
 					if (getGameTimer() > temperatureTimer) // penalty timer for player outfit in accordance to surrounding temperature, called every temperatureTimer
 					{
@@ -1236,16 +1232,16 @@ void main()
 						case 0: // cold
 							if(temperatureCoreFx) GRAPHICS::ANIMPOSTFX_PLAY("PlayerHonorLevelBad"); // grayish tint, seems suitable enough to show player is cold
 							(ENTITY::GET_ENTITY_HEALTH(playerPed) - temperatureHpPercentageDrain <= 1) ? ENTITY::_SET_ENTITY_HEALTH(playerPed, 1, 1) : ENTITY::_SET_ENTITY_HEALTH(playerPed, (ENTITY::GET_ENTITY_HEALTH(playerPed) - temperatureHpPercentageDrain), 0); // hp outer core drain
-							if (getPlayerCore(Core::Health) <= 20 && getCurrentHealthPercent(playerPed) <= 10 && !isPlayerCoreOverpowered(Core::Health) && !isPlayerPointOverpowered(Core::Health) && !knockedOut) // when reached this threshold, knock player out
+							if (getPlayerCore(Core::Health) < 10 && getCurrentHealthPercent(playerPed) < 10 && !isPlayerCoreOverpowered(Core::Health) && !isPlayerPointOverpowered(Core::Health) && !knockedOut) // when reached this threshold, knock player out
 							{
 								TASK::TASK_KNOCKED_OUT(playerPed, 0.0f, false);
 								knockedOut = true;
-								text << "hooked cold effect on health less than 20%, knockedOut = true, next occurence after " << temperatureMs * 2 << " ms clothesPoints: " << getPlayerClothesPoint() << " pointsNeeded: " << getTemperaturePointsNeeded() << " pointsModifier: " << pointsModifier;
+								text << "hooked cold effect with health less that 10%, knockedOut, next occurence after " << temperatureMs * 2 << " ms";
 								writeLog(text.str().c_str());
 							}
 							else
 							{
-								text << "hooked cold effect, next occurence after " << temperatureMs << " ms clothesPoints: " << getPlayerClothesPoint() << " pointsNeeded: " << getTemperaturePointsNeeded() << " pointsModifier: " << pointsModifier;
+								text << "hooked cold effect, next occurence after " << temperatureMs << " ms";
 								writeLog(text.str().c_str());
 								knockedOut = false;
 							}
@@ -1254,14 +1250,13 @@ void main()
 							break;
 						case 2: // hot
 							if (temperatureCoreFx) GRAPHICS::ANIMPOSTFX_PLAY("PlayerHonorLevelGood"); // reddish tint, seems suitable enough to show player is hot
-							text << "hooked hot effect, next occurence after " << temperatureMs << " ms clothesPoints: " << getPlayerClothesPoint() << " pointsNeeded: " << getTemperaturePointsNeeded() << " pointsModifier: " << pointsModifier;
+							text << "hooked hot effect, next occurence after " << temperatureMs * 2 << " ms";
 							writeLog(text.str().c_str());
 							break;
 						default:
 							break;
 						}
 
-						pointsModifier = 0.0f; // reset pointsModifier to recalculate above
 						temperatureMs = (outfitModifier == 2 || knockedOut) ? (GetPrivateProfileInt("TIMERS", "TEMPERATURE_PENALTY", 8000, ".\\SoftCores.ini") * 2) : GetPrivateProfileInt("TIMERS", "TEMPERATURE_PENALTY", 8000, ".\\SoftCores.ini"); // if outfit is hot/knockedOut previously, temperatureMs is doubled 
 						temperatureTimer = getGameTimer() + temperatureMs; // if knocked out previously, the next timer will be longer to allow recovery period
 					}
@@ -1272,36 +1267,55 @@ void main()
 			// START AIMING PENALTY +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			if (aimPenalty)
 			{
-				Hash aimedWeapon;
 				int stAimingPenalty = GetPrivateProfileInt("CORE_MODIFIER", "STAMINA_AIMING_PENALTY", 4, ".\\SoftCores.ini") * getMaxPlayerPoint(Core::Stamina) / 100;
 				int deAimingPenalty = GetPrivateProfileInt("CORE_MODIFIER", "DEADEYE_AIMING_PENALTY", 8, ".\\SoftCores.ini") * getMaxPlayerPoint(Core::DeadEye) / 100;
+				bool isAimingAir = false;
 
+				if (PAD::IS_CONTROL_JUST_PRESSED(0, key("INPUT_AIM_IN_AIR")) || PAD::IS_CONTROL_PRESSED(0, key("INPUT_AIM_IN_AIR"))) isAimingAir = !isAimingAir;
+				
 				if (getGameTimer() > aimTimer)
 				{
 					stAimingPenalty = (isPlayerPointOverpowered(Core::Stamina)) ? 0 : stAimingPenalty;
 					deAimingPenalty = (isPlayerPointOverpowered(Core::DeadEye)) ? 0 : deAimingPenalty;
 
-					if (PLAYER::IS_PLAYER_FREE_AIMING(playerID) && WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &aimedWeapon, false, 0, true))
+					if (PLAYER::IS_PLAYER_FREE_AIMING(playerID) && !isAimingAir)
 					{
-						if (!isWeaponItem(aimedWeapon) && !isWeaponThrowableOnly(aimedWeapon) && !isWeaponMelee(aimedWeapon)) // if not unique and not throwable
+						Hash aimedWeapon;
+						if (WEAPON::GET_CURRENT_PED_WEAPON(playerPed, &aimedWeapon, false, 0, true))
 						{
-							PED::SET_PED_RESET_FLAG(playerPed, 139, true); // disable stamina outer core regen
-
-							(getPlayerPoint(Core::Stamina) - stAimingPenalty > 0) ? setPlayerPoint(Core::Stamina, getPlayerPoint(Core::Stamina) - stAimingPenalty) : setPlayerPoint(Core::Stamina, -1); // drain outer core stamina until empty
-							(getPlayerPoint(Core::DeadEye) - deAimingPenalty > 0) ? setPlayerPoint(Core::DeadEye, getPlayerPoint(Core::DeadEye) - deAimingPenalty) : setPlayerPoint(Core::DeadEye, -1); // drain outer core deadeye until empty
-
-							if (getPlayerPoint(Core::Stamina) <= 0 && !isPlayerCoreOverpowered(Core::Stamina)) // if stamina outer core is empty and main core is not overpowered
+							if (!isWeaponItem(aimedWeapon) && !isWeaponThrowableOnly(aimedWeapon) && !isWeaponMelee(aimedWeapon)) // if not unique and not throwable
 							{
-								(getPlayerCore(Core::Stamina) > 0) ? setPlayerCore(Core::Stamina, getPlayerCore(Core::Stamina) - 1) : setPlayerCore(Core::Stamina, 0); // if main stamina core more than 0, drain until equals to 0
-							}
+								PED::SET_PED_RESET_FLAG(playerPed, 139, true); // disable stamina outer core regen
 
-							if (getPlayerPoint(Core::DeadEye) <= 0 && !isPlayerCoreOverpowered(Core::DeadEye))
-							{
-								(getPlayerCore(Core::DeadEye) > 0) ? setPlayerCore(Core::DeadEye, getPlayerCore(Core::DeadEye) - 1) : setPlayerCore(Core::DeadEye, 0); // if main deadeye core more than 0, drain until equals to 0
+								if (!isPlayerPointOverpowered(Core::Stamina)) // only occurs if not overpowered by potions, let game handles that instead
+								{
+									(getPlayerPoint(Core::Stamina) - stAimingPenalty <= 0) ? setPlayerPoint(Core::Stamina, 0) : setPlayerPoint(Core::Stamina, getPlayerPoint(Core::Stamina) - stAimingPenalty); // drain outer stamina core until empty
+								}
+
+								if (!isPlayerPointOverpowered(Core::DeadEye)) // only occurs if not overpowered by potions, let game handles that instead
+								{
+									(getPlayerPoint(Core::DeadEye) - deAimingPenalty <= 0) ? setPlayerPoint(Core::DeadEye, 0) : setPlayerPoint(Core::DeadEye, getPlayerPoint(Core::DeadEye) - deAimingPenalty); // drain outer deadeye core until empty
+								}
+
+								if (getPlayerPoint(Core::Stamina) == 0) // if stamina outer core is empty 
+								{
+									if (!isPlayerCoreOverpowered(Core::Stamina)) // and main core is not overpowered
+									{
+										(getPlayerCore(Core::Stamina) - 1 <= 0) ? setPlayerCore(Core::Stamina, 0) : setPlayerCore(Core::Stamina, getPlayerCore(Core::Stamina) - 1); // drains main stamina core
+									}
+								}
+
+								if (getPlayerPoint(Core::DeadEye) == 0) // if stamina outer core is empty 
+								{
+									if (!isPlayerCoreOverpowered(Core::DeadEye)) // and main core is not overpowered
+									{
+										(getPlayerCore(Core::DeadEye) - 1 <= 0) ? setPlayerCore(Core::DeadEye, 0) : setPlayerCore(Core::DeadEye, getPlayerCore(Core::DeadEye) - 1); // drains main deadeye core
+									}
+								}
 							}
 						}
 					}
-					else
+					else if (!PLAYER::IS_PLAYER_FREE_AIMING(playerID) || isAimingAir)
 					{
 						(getPlayerPoint(Core::Stamina) + stAimingPenalty < getMaxPlayerPoint(Core::Stamina)) ? setPlayerPoint(Core::Stamina, getPlayerPoint(Core::Stamina) + stAimingPenalty) : setPlayerPoint(Core::Stamina, getMaxPlayerPoint(Core::Stamina)); // restore outer core stamina until max
 						(getPlayerPoint(Core::DeadEye) + deAimingPenalty < getMaxPlayerPoint(Core::DeadEye)) ? setPlayerPoint(Core::DeadEye, getPlayerPoint(Core::DeadEye) + deAimingPenalty) : setPlayerPoint(Core::DeadEye, getMaxPlayerPoint(Core::DeadEye)); // restore outer core  deadeye until max
@@ -1344,11 +1358,7 @@ void main()
 						horseStDrain = bFloor(horseStDrain * 0.5f);
 					}
 
-					stringstream text;
-					text << "hooked main core drain effect, next core drain occurence after " << depletionMs << " ms playerHpDrain: " << playerHpDrain << " playerStDrain: " << playerStDrain << " playerDeDrain: " << playerDeDrain;
-					writeLog(text.str().c_str());
-
-					if (temperatureCore) // this one to be called every depletionTimer
+					if (temperatureCore) // if temperatureCore feature enabled in .ini configuration, apply temperature modifier to base main core drain effects
 					{
 						float temperatureModifier;
 						stringstream text;
@@ -1359,6 +1369,7 @@ void main()
 							playerHealthRegen = 0.0f; // no hp regen at all
 							temperatureModifier = 1.0f + fabsf(pointsDifferences);
 							playerHpDrain = bCeil(playerHpDrain * temperatureModifier);
+							depletionMs = GetPrivateProfileInt("TIMERS", "CORE_DEPLETION", 120000, ".\\SoftCores.ini") / 2; // if outfit is not warm, core depletionMs is faster by 50%
 							text << "hooked cold effect, next core drain occurence after " << depletionMs << " ms playerHpDrain: " << playerHpDrain << " playerStDrain: " << playerStDrain << " playerDeDrain: " << playerDeDrain;
 							writeLog(text.str().c_str());
 							break;
@@ -1368,6 +1379,7 @@ void main()
 							playerHpDrain = bFloor(playerHpDrain * temperatureModifier);
 							playerStDrain = bFloor(playerStDrain * temperatureModifier);
 							playerDeDrain = bFloor(playerDeDrain * temperatureModifier);
+							depletionMs = GetPrivateProfileInt("TIMERS", "CORE_DEPLETION", 120000, ".\\SoftCores.ini"); // if outfit warm, core depletionMs is as set in .ini configuration file
 							text << "hooked warm effect, next core drain occurence after " << depletionMs << " ms playerHpDrain: " << playerHpDrain << " playerStDrain: " << playerStDrain << " playerDeDrain: " << playerDeDrain;
 							writeLog(text.str().c_str());
 							break;
@@ -1376,6 +1388,7 @@ void main()
 							temperatureModifier = 0.5f + pointsDifferences;
 							playerStDrain = bCeil(playerStDrain * temperatureModifier);
 							playerDeDrain = bCeil(playerDeDrain * temperatureModifier);
+							depletionMs = GetPrivateProfileInt("TIMERS", "CORE_DEPLETION", 120000, ".\\SoftCores.ini") / 2; // if outfit is not warm, core depletionMs is faster by 50%
 							text << "hooked hot effect, next core drain occurence after " << depletionMs << " ms playerHpDrain: " << playerHpDrain << " playerStDrain: " << playerStDrain << " playerDeDrain: " << playerDeDrain;
 							writeLog(text.str().c_str());
 							break;
@@ -1383,8 +1396,11 @@ void main()
 							break;
 						}
 					}
-					else
+					else if (!temperatureCore)
 					{
+						stringstream text;
+						text << "hooked core drain effect, next core drain occurence after " << depletionMs << " ms playerHpDrain: " << playerHpDrain << " playerStDrain: " << playerStDrain << " playerDeDrain: " << playerDeDrain;
+						writeLog(text.str().c_str());
 						playerHealthRegen = (isPlayerCoreOverpowered(Core::Health)) ? 1.0f : playerHealthRegen;
 					}
 
@@ -1426,40 +1442,32 @@ void main()
 			// END CORE DRAIN +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 			// START OF DEATH PENALTY +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			if (penaltyOnDeath)
+			if (isPlayerInMission() && !isInMission)
 			{
-				bool isInMission;
+				writeLog("hooked player is in mission, penalty on death disabled");
+				isInMission = true;
+			}
+			else if (!isPlayerInMission() && isInMission)
+			{
+				isInMission = false;
+				writeLog("hooked player is not in mission, penalty on death enabled");
+			}
+			
+			if (penaltyOnDeath && !isInMission)
+			{
 				bool coresPenalty;
 				bool deathPenalty;
+				int deathTime;
 
-				if (!isPlayerInMission() && isInMission)
+				if (!isPlayerMoving() && isPlayerJustDied() && !isPlayerPlaying() && !coresPenalty)
 				{
-					writeLog("hooked player is not in mission, penalty on death enabled");
+					deathTime = PED::GET_PED_TIME_OF_DEATH(playerPed);
+					coresPenalty = true;
+					writeLog("hooked player is not moving, just died, not playing and !coresPenalty");
 				}
-
-				if (isPlayerInMission() && !isInMission)
-				{
-					writeLog("hooked player is in mission, penalty on death disabled");
-					isInMission = true;
-				}
-				else if (!isPlayerInMission())
-				{
-					isInMission = false;
-				}
-
-				if (!isInMission)
-				{
-					if (!isPlayerMoving() && isPlayerJustDied() && !isPlayerPlaying() && !coresPenalty)
-					{
-						coresPenalty = true;
-						writeLog("coresPenalty = true");
-					}
-				}
-
+				
 				if (coresPenalty && !deathPenalty)
 				{
-					writeLog("hooked applying death penalty to player weapons, ammo and money");
-
 					if (loseHandWeapon) // lose weapon on hand
 					{
 						const int weaponAttachPoints[] = { 0, 1 }; // weapon attachment points for both hands
@@ -1567,6 +1575,7 @@ void main()
 						text << "percentage of money to lose: " << rngInt << " % finalMoney: " << finalMoney;
 						writeLog(text.str().c_str());
 					}
+					writeLog("hooked death penalty to player weapons, ammo and money applied");
 					deathPenalty = true;
 				}
 
@@ -1579,13 +1588,13 @@ void main()
 					ENTITY::_SET_ENTITY_HEALTH(playerPed, 1, 0);
 					setPlayerPoint(Core::Stamina, 1);
 					setPlayerPoint(Core::DeadEye, 1);
+					coresPenalty = (getGameTimer() - deathTime > 15000) ? false : true;
 				}
 
-				if (isPlayerMoving() && !isPlayerJustDied() && isPlayerPlaying() && coresPenalty && deathPenalty)
+				if (isPlayerMoving() && !isPlayerJustDied() && isPlayerPlaying() && !coresPenalty && deathPenalty)
 				{
 					setPlayerPoint(Core::Stamina, getMaxPlayerPoint(Core::Stamina)); // restore outer core stamina until max
 					setPlayerPoint(Core::DeadEye, getMaxPlayerPoint(Core::DeadEye)); // restore outer core  deadeye until max
-					coresPenalty = false;
 					deathPenalty = false;
 					writeLog("hooked stopped applying death penalty to player cores");
 				}
