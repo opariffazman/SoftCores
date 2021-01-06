@@ -189,6 +189,12 @@ enum class Clothes : uint {
 	Chaps = 0x3107499B
 };
 
+void unequipClothes(Clothes cloth)
+{
+	PED::_SET_PED_COMPONENT_DISABLED(PLAYER::PLAYER_PED_ID(), static_cast<uint>(cloth), 1);
+	PED::_UPDATE_PED_VARIATION(PLAYER::PLAYER_PED_ID(), false, true, true, true, false);
+}
+
 // conditions
 bool isPlayerWearing(Clothes cloth)
 {
@@ -568,23 +574,34 @@ int getGameTimer()
 	return MISC::GET_GAME_TIMER();
 }
 
+// prompt functions
+void togglePrompt(int prompt, bool visible, bool disable)
+{
+	HUD::_UIPROMPT_SET_VISIBLE(prompt, visible);
+	HUD::_UIPROMPT_SET_ENABLED(prompt, disable);
+}
+
 // temperature mechanics
 // arbitrary accumulated points for clothing player is wearing
 float getPlayerClothesPoint()
 {
 	float clothPoints{};
-	if (isPlayerWearing(Clothes::Hats)) clothPoints += 0.5f;
-	if (isPlayerWearing(Clothes::Shirts)) clothPoints += 1.0f; // assured points
-	if (isPlayerWearing(Clothes::Vests)) clothPoints += 1.0f;
-	if (isPlayerWearing(Clothes::Pants)) clothPoints += 1.5f; // assured points
-	if (isPlayerWearing(Clothes::Boots)) clothPoints += 1.0f;
-	if (isPlayerWearing(Clothes::Cloaks)) clothPoints += 2.5f;
-	if (isPlayerWearing(Clothes::Neckwear)) clothPoints += 0.5f;
-	if (isPlayerWearing(Clothes::Neckties)) clothPoints += 0.5f;
-	if (isPlayerWearing(Clothes::Gloves)) clothPoints += 1.0f;
-	if (isPlayerWearing(Clothes::Coats)) clothPoints += 2.5f;
-	if (isPlayerWearing(Clothes::Chaps)) clothPoints += 1.5f;
+	if (isPlayerWearing(Clothes::Hats)) clothPoints += 0.2f; // can be removed
+	if (isPlayerWearing(Clothes::Shirts)) clothPoints += 0.8f; // by default, assured points, can't be removed
+	if (isPlayerWearing(Clothes::Vests)) clothPoints += 1.0f; // can be removed
+	if (isPlayerWearing(Clothes::Pants)) clothPoints += 0.8f; // by default, assured points, can't be removed
+	if (isPlayerWearing(Clothes::Boots)) clothPoints += 1.2f; // can be removed
+	if (isPlayerWearing(Clothes::Cloaks)) clothPoints += 1.6f; // by default, only a Cloaks/Coats at a time
+	if (isPlayerWearing(Clothes::Coats)) clothPoints += 1.6f;
+	if (isPlayerWearing(Clothes::Neckwear)) clothPoints += 0.2f; // by default, only a Neckwear/Neckties at a time
+	if (isPlayerWearing(Clothes::Neckties)) clothPoints += 0.2f;
+	if (isPlayerWearing(Clothes::Gloves)) clothPoints += 0.6f; // can be removed
+	if (isPlayerWearing(Clothes::Chaps)) clothPoints += 0.4f; // can be removed
 	return clothPoints;
+	// by default, full outfit will be 8.0f
+	// basic outfit hat, shirt, pants & boots = 2.8f
+	// basic outfit with vests & neckwear = 4.2f
+	// plus gloves and chaps = 5.2f
 }
 
 float celciusToFarenheit(float temperature) // using exactly the same formula based on the decompiled scripts
@@ -615,33 +632,33 @@ float getTemperaturePointsNeeded()
 	}
 
 	if (getSurroundingTemperature() < temperaturePoints[0]) // coldest
-		return 10.0f;
-	else if (getSurroundingTemperature() >= temperaturePoints[0] && getSurroundingTemperature() < temperaturePoints[1])
-		return 9.5f;
-	else if (getSurroundingTemperature() >= temperaturePoints[1] && getSurroundingTemperature() < temperaturePoints[2])
 		return 9.0f;
-	else if (getSurroundingTemperature() >= temperaturePoints[2] && getSurroundingTemperature() < temperaturePoints[3])
+	else if (getSurroundingTemperature() >= temperaturePoints[0] && getSurroundingTemperature() < temperaturePoints[1])
 		return 8.5f;
-	else if (getSurroundingTemperature() >= temperaturePoints[3] && getSurroundingTemperature() < temperaturePoints[4])
+	else if (getSurroundingTemperature() >= temperaturePoints[1] && getSurroundingTemperature() < temperaturePoints[2])
 		return 8.0f;
-	else if (getSurroundingTemperature() >= temperaturePoints[4] && getSurroundingTemperature() < temperaturePoints[5])
+	else if (getSurroundingTemperature() >= temperaturePoints[2] && getSurroundingTemperature() < temperaturePoints[3])
 		return 7.5f;
-	else if (getSurroundingTemperature() >= temperaturePoints[5] && getSurroundingTemperature() < temperaturePoints[6])
+	else if (getSurroundingTemperature() >= temperaturePoints[3] && getSurroundingTemperature() < temperaturePoints[4])
 		return 7.0f;
-	else if (getSurroundingTemperature() >= temperaturePoints[6] && getSurroundingTemperature() < temperaturePoints[7])
+	else if (getSurroundingTemperature() >= temperaturePoints[4] && getSurroundingTemperature() < temperaturePoints[5])
 		return 6.5f;
-	else if (getSurroundingTemperature() >= temperaturePoints[7] && getSurroundingTemperature() < temperaturePoints[8])
+	else if (getSurroundingTemperature() >= temperaturePoints[5] && getSurroundingTemperature() < temperaturePoints[6])
 		return 6.0f;
-	else if (getSurroundingTemperature() >= temperaturePoints[8] && getSurroundingTemperature() < temperaturePoints[9])
+	else if (getSurroundingTemperature() >= temperaturePoints[6] && getSurroundingTemperature() < temperaturePoints[7])
 		return 5.5f;
-	else if (getSurroundingTemperature() >= temperaturePoints[9] && getSurroundingTemperature() < temperaturePoints[10])
+	else if (getSurroundingTemperature() >= temperaturePoints[7] && getSurroundingTemperature() < temperaturePoints[8])
 		return 5.0f;
-	else if (getSurroundingTemperature() >= temperaturePoints[10] && getSurroundingTemperature() < temperaturePoints[11])
+	else if (getSurroundingTemperature() >= temperaturePoints[8] && getSurroundingTemperature() < temperaturePoints[9])
 		return 4.5f;
-	else if (getSurroundingTemperature() >= temperaturePoints[11] && getSurroundingTemperature() < temperaturePoints[12])
+	else if (getSurroundingTemperature() >= temperaturePoints[9] && getSurroundingTemperature() < temperaturePoints[10])
 		return 4.0f;
-	else if (getSurroundingTemperature() >= temperaturePoints[12]) // hottest
+	else if (getSurroundingTemperature() >= temperaturePoints[10] && getSurroundingTemperature() < temperaturePoints[11])
 		return 3.5f;
+	else if (getSurroundingTemperature() >= temperaturePoints[11] && getSurroundingTemperature() < temperaturePoints[12])
+		return 3.0f;
+	else if (getSurroundingTemperature() >= temperaturePoints[12]) // hottest
+		return 2.5f;
 	else return 0.0f;
 }
 
@@ -668,6 +685,7 @@ void main()
 	bool pickupsGlow = GetPrivateProfileInt("IMMERSION", "PICKUPS_GLOW", 0, ".\\SoftCores.ini");
 	bool objectsGlow = GetPrivateProfileInt("IMMERSION", "OBJECTS_GLOW", 0, ".\\SoftCores.ini");
 	bool hostileBlip = GetPrivateProfileInt("IMMERSION", "HOSTILE_BLIP", 0, ".\\SoftCores.ini");
+	bool hostileBlipOnMission = GetPrivateProfileInt("IMMERSION", "HOSTILE_BLIP_ON_MISSION", 0, ".\\SoftCores.ini");
 	bool deadEyeReload = GetPrivateProfileInt("IMMERSION", "DEADEYE_RELOAD", 0, ".\\SoftCores.ini");
 	bool sleepStaminaOnly = GetPrivateProfileInt("IMMERSION", "SLEEP_STAMINA_ONLY", 1, ".\\SoftCores.ini");
 	bool bathDeadEyeOnly = GetPrivateProfileInt("IMMERSION", "BATH_DEADEYE_ONLY", 1, ".\\SoftCores.ini");
@@ -784,6 +802,26 @@ void main()
 	// mod range
 	int pedsRange = GetPrivateProfileInt("MOD_RANGE", "PEDS", 1024, ".\\SoftCores.ini");
 
+	// prompt creation here
+	int radarPromptGroup = 704572841;
+	int hatPrompt = HUD::_UIPROMPT_REGISTER_BEGIN();
+	if (PAD::_IS_USING_KEYBOARD(0)) HUD::_UIPROMPT_SET_CONTROL_ACTION(hatPrompt, key("INPUT_INTERACT_OPTION2"));
+	else if (!PAD::_IS_USING_KEYBOARD(0)) HUD::_UIPROMPT_SET_CONTROL_ACTION(hatPrompt, key("INPUT_SPRINT"));
+	HUD::_UIPROMPT_SET_TEXT(hatPrompt, MISC::_CREATE_VAR_STRING(10, "LITERAL_STRING", "unequip hat"));
+	HUD::_UIPROMPT_SET_STANDARD_MODE(hatPrompt, 1);
+	HUD::_UIPROMPT_REGISTER_END(hatPrompt);
+	HUD::_UIPROMPT_SET_GROUP(hatPrompt, radarPromptGroup, 0);
+	togglePrompt(hatPrompt, false, false);
+
+	int glovePrompt = HUD::_UIPROMPT_REGISTER_BEGIN(); // prompt for cinematic camera
+	if (PAD::_IS_USING_KEYBOARD(0)) HUD::_UIPROMPT_SET_CONTROL_ACTION(glovePrompt, key("INPUT_INTERACT_OPTION1"));
+	else if (!PAD::_IS_USING_KEYBOARD(0)) HUD::_UIPROMPT_SET_CONTROL_ACTION(glovePrompt, key("INPUT_LOOK_BEHIND"));
+	HUD::_UIPROMPT_SET_TEXT(glovePrompt, MISC::_CREATE_VAR_STRING(10, "LITERAL_STRING", "unequip gloves"));
+	HUD::_UIPROMPT_SET_STANDARD_MODE(glovePrompt, 1);
+	HUD::_UIPROMPT_REGISTER_END(glovePrompt);
+	HUD::_UIPROMPT_SET_GROUP(glovePrompt, radarPromptGroup, 0);
+	togglePrompt(glovePrompt, false, false);
+
 	while (true)
 	{
 		// variables that need constantly updated
@@ -829,22 +867,47 @@ void main()
 
 			for (int i = 0; i < count; i++)
 			{
-				if (isHostileNearby(hostilePed[i]) || isPlayerInCombat() || isPlayerPursued() || isPlayerInMission()) // returns TRUE whenever hostile is nearby/player in combat, being pursued/wanted or in mission (hopefully works for stealth missions)
+				if (!hostileBlipOnMission)
 				{
-					if (hostilePed[i] != playerPed && hostilePed[i] != horsePed && !isPedFriendly(hostilePed[i]) && ENTITY::IS_ENTITY_A_PED(hostilePed[i]) && !PED::IS_PED_DEAD_OR_DYING(hostilePed[i], true)) // not playerPed, horsePed, friendlyPed, a ped & not dead
+					if (isHostileNearby(hostilePed[i]) || isPlayerInCombat() || isPlayerPursued() || isPlayerInMission()) // returns TRUE whenever hostile is nearby/player in combat, being pursued/wanted or in mission (hopefully works for stealth missions)
 					{
-						PED::REQUEST_PED_VISIBILITY_TRACKING(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i])); // track these hostile peds if all is true
-						hostileBlipMap[hostilePed[i]] = MAP::GET_BLIP_FROM_ENTITY(hostilePed[i]); // save em in a Ped <-> Blip Map
+						if (hostilePed[i] != playerPed && hostilePed[i] != horsePed && !isPedFriendly(hostilePed[i]) && ENTITY::IS_ENTITY_A_PED(hostilePed[i]) && !PED::IS_PED_DEAD_OR_DYING(hostilePed[i], true)) // not playerPed, horsePed, friendlyPed, a ped & not dead
+						{
+							PED::REQUEST_PED_VISIBILITY_TRACKING(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i])); // track these hostile peds if all is true
+							hostileBlipMap[hostilePed[i]] = MAP::GET_BLIP_FROM_ENTITY(hostilePed[i]); // save em in a Ped <-> Blip Map
 
-						if (PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // within player fov
-						{
-							MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_IN"));
-							MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
+							if (PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // within player fov
+							{
+								MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_IN"));
+								MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
+							}
+							else if (!PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // not within player fov
+							{
+								MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
+								MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_OUT_SLOW"));
+							}
 						}
-						else if (!PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // not within player fov
+					}
+				}
+				else if (hostileBlipOnMission)
+				{
+					if (isHostileNearby(hostilePed[i]) || isPlayerInCombat() || isPlayerPursued() && !isPlayerInMission()) // returns TRUE whenever hostile is nearby/player in combat, being pursued/wanted and not in mission (hopefully works for stealth missions)
+					{
+						if (hostilePed[i] != playerPed && hostilePed[i] != horsePed && !isPedFriendly(hostilePed[i]) && ENTITY::IS_ENTITY_A_PED(hostilePed[i]) && !PED::IS_PED_DEAD_OR_DYING(hostilePed[i], true)) // not playerPed, horsePed, friendlyPed, a ped & not dead
 						{
-							MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
-							MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_OUT_SLOW"));
+							PED::REQUEST_PED_VISIBILITY_TRACKING(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i])); // track these hostile peds if all is true
+							hostileBlipMap[hostilePed[i]] = MAP::GET_BLIP_FROM_ENTITY(hostilePed[i]); // save em in a Ped <-> Blip Map
+
+							if (PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // within player fov
+							{
+								MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_IN"));
+								MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
+							}
+							else if (!PED::IS_TRACKED_PED_VISIBLE(ENTITY::GET_PED_INDEX_FROM_ENTITY_INDEX(hostilePed[i]))) // not within player fov
+							{
+								MAP::_BLIP_SET_MODIFIER(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE"));
+								MAP::_SET_BLIP_FLASH_STYLE(hostileBlipMap[hostilePed[i]], key("BLIP_MODIFIER_FADE_OUT_SLOW"));
+							}
 						}
 					}
 				}
@@ -1163,17 +1226,20 @@ void main()
 
 				const char* spriteModifier;
 
-				if (pointsDifferences < -2.5f) // simulate cold if pointDifferences is less than -2.5, say player is wearing 7.0 points of clothing vs 10.0 points of temperature, outfitModifier is cold
+				float coldThreshold = -1.0f * (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "COLD_THRESHOLD", 150, ".\\SoftCores.ini") / 100.0f; // this is negative points
+				float hotThreshold = (float)GetPrivateProfileInt("TEMPERATURE_MODIFIER", "HOT_THRESHOLD", 400, ".\\SoftCores.ini") / 100.0f;
+
+				if (pointsDifferences < coldThreshold) // simulate cold if pointDifferences is less than -1.5, say player is wearing 6.0 points of clothing vs 8.0 points of temperature, outfitModifier is cold
 				{
 					outfitModifier = 0;
 					spriteModifier = "RPG_COLD";
 				}
-				else if (pointsDifferences >= -2.5f && pointsDifferences < 4.5f) // simulate warm, ideal condition
+				else if (pointsDifferences >= coldThreshold && pointsDifferences < hotThreshold) // simulate warm, ideal condition
 				{
 					outfitModifier = 1;
 					spriteModifier = "RPG_WARM";
 				}
-				else if (pointsDifferences >= 4.5f) // simulate hot if pointDifferences is more than 4.5, say player is wearing 10.0 points of clothing vs 5.5 points of temperature, outfitModifier is hot
+				else if (pointsDifferences >= hotThreshold) // simulate hot if pointDifferences is more or equal than 4.0, say player is wearing 10.0 points of clothing vs 6.0 points of temperature, outfitModifier is hot
 				{
 					outfitModifier = 2;
 					spriteModifier = "RPG_HOT";
@@ -1212,6 +1278,41 @@ void main()
 					}
 
 					if (getGameTimer() - drawTimer > 3000) drawSprite = false; // only show for 3 seconds
+				}
+
+				// Hat & Gloves prompts ***********************************************************************************************************
+				// Show prompts for removal when away from horse and got 'em currently equipped
+
+				if (PAD::IS_CONTROL_PRESSED(0, key("INPUT_SELECT_RADAR_MODE")) && isPlayerWearing(Clothes::Hats) && !isPlayerActiveInScenario() && !isBathing)
+				{
+					togglePrompt(hatPrompt, true, true);
+				}
+				else
+				{
+					togglePrompt(hatPrompt, false, false);
+				}
+
+				if (HUD::_UIPROMPT_HAS_STANDARD_MODE_COMPLETED(hatPrompt, 0))
+				{
+					unequipClothes(Clothes::Hats);
+					writeLog("hooked player unequips hat");
+					togglePrompt(hatPrompt, false, false);
+				}
+
+				if (PAD::IS_CONTROL_PRESSED(0, key("INPUT_SELECT_RADAR_MODE")) && isPlayerWearing(Clothes::Gloves) && !isPlayerActiveInScenario() && !isBathing)
+				{
+					togglePrompt(glovePrompt, true, true);
+				}
+				else
+				{
+					togglePrompt(glovePrompt, false, false);
+				}
+
+				if (HUD::_UIPROMPT_HAS_STANDARD_MODE_COMPLETED(glovePrompt, 0))
+				{
+					unequipClothes(Clothes::Gloves);
+					writeLog("hooked player unequips gloves");
+					togglePrompt(glovePrompt, false, false);
 				}
 
 				(outfitModifier == 2) ? PED::SET_PED_RESET_FLAG(playerPed, 139, true) : PED::SET_PED_RESET_FLAG(playerPed, 139, false); // if outfit is hot, no stamina regen
